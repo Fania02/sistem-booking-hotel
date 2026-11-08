@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\SebagaiOpsi;
+
 enum StatusKamar: string
 {
+    use SebagaiOpsi;
+
     case Tersedia = 'tersedia';
     case Perbaikan = 'perbaikan';
 

@@ -38,7 +38,7 @@ class Kamar extends Model
 
     public function tipeKamar(): BelongsTo
     {
-        return $this->belongsTo(TipeKamar::class);
+        return $this->belongsTo(TipeKamar::class)->withTrashed();
     }
 
     public function detailReservasi(): HasMany
@@ -70,10 +70,7 @@ class Kamar extends Model
         $masuk = Carbon::parse($tglCheckin)->startOfDay();
         $keluar = Carbon::parse($tglCheckout)->startOfDay();
 
-        $statusAktif = array_map(
-            fn (StatusReservasi $status): string => $status->value,
-            StatusReservasi::aktif(),
-        );
+        $statusAktif = StatusReservasi::nilaiAktif();
 
         return $query
             ->where('status', StatusKamar::Tersedia->value)

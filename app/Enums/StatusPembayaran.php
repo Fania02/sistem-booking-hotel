@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\SebagaiOpsi;
+
 enum StatusPembayaran: string
 {
+    use SebagaiOpsi;
+
     case BelumBayar = 'belum_bayar';
     case Dp = 'dp';
     case Lunas = 'lunas';

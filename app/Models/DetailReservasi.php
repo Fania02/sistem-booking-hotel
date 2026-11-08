@@ -29,6 +29,6 @@ class DetailReservasi extends Model
 
     public function kamar(): BelongsTo
     {
-        return $this->belongsTo(Kamar::class);
+        return $this->belongsTo(Kamar::class)->withTrashed();
     }
 }
