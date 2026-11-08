@@ -71,7 +71,7 @@ class Reservasi extends Model
 
     public function tamu(): BelongsTo
     {
-        return $this->belongsTo(Tamu::class);
+        return $this->belongsTo(Tamu::class)->withTrashed();
     }
 
     /**
@@ -123,10 +123,11 @@ class Reservasi extends Model
     /**
      * Menambahkan kamar ke reservasi. Harga per malam disalin dari tipe kamar saat ini,
      * sehingga riwayat harga tidak berubah walau harga tipe kamar diubah nanti.
+     * Saat mengubah reservasi, harga lama kamar yang sama bisa diberikan lewat $hargaPerMalam.
      */
-    public function tambahKamar(Kamar $kamar): DetailReservasi
+    public function tambahKamar(Kamar $kamar, string|float|null $hargaPerMalam = null): DetailReservasi
     {
-        $hargaPerMalam = $kamar->tipeKamar->harga_per_malam;
+        $hargaPerMalam ??= $kamar->tipeKamar->harga_per_malam;
 
         return $this->detail()->create([
             'kamar_id' => $kamar->getKey(),

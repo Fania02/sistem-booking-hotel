@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\SebagaiOpsi;
+
 enum SumberReservasi: string
 {
+    use SebagaiOpsi;
+
     case Online = 'online';
     case WalkIn = 'walk-in';
 
