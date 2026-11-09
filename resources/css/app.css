@@ -1,4 +1,13 @@
 @import 'tailwindcss';
+@theme {
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-krem: #f5efe6;
+  --color-tinta: #2b1d16;
+  --color-emas: #b98a5a;
+  --color-redam: #8a7a6e;
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
