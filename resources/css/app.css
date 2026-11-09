@@ -2,8 +2,111 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../js/**/*.js';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-krem: #f5f0e8;
+    --color-tinta: #2b1f1a;
+    --color-kopi: #4a342c;
+    --color-emas: #b98a58;
+    --color-emas-tua: #a1763f;
+    --color-pasir: #e9d7bc;
+    --color-redam: #8a7b70;
+    --color-garis: #eadfce;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-krem font-sans text-tinta antialiased;
+    }
+
+    [hidden] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .judul {
+        @apply font-display font-semibold tracking-tight;
+    }
+
+    .eyebrow {
+        @apply text-[10px] font-medium uppercase tracking-[0.18em] text-redam;
+    }
+
+    .btn-gelap,
+    .btn-emas,
+    .btn-garis,
+    .btn-garis-terang {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-gelap {
+        @apply bg-tinta text-white hover:bg-kopi;
+    }
+
+    .btn-emas {
+        @apply bg-emas text-white hover:bg-emas-tua;
+    }
+
+    .btn-garis {
+        @apply border border-tinta/25 bg-transparent text-tinta hover:bg-tinta/5;
+    }
+
+    .btn-garis-terang {
+        @apply border border-white/30 bg-transparent text-white hover:bg-white/10;
+    }
+
+    .kartu {
+        @apply rounded-2xl bg-white shadow-[0_1px_2px_rgba(43,31,26,0.04)];
+    }
+
+    .label {
+        @apply mb-1 block text-[11px] font-medium text-redam;
+    }
+
+    .input,
+    .input-krem {
+        @apply w-full rounded-lg border border-garis bg-white px-3 py-2 text-sm text-tinta outline-none transition placeholder:text-redam/60 focus:border-emas focus:ring-2 focus:ring-emas/20;
+    }
+
+    .input-krem {
+        @apply border-transparent bg-krem;
+    }
+
+    .input-error {
+        @apply border-red-400 focus:border-red-400 focus:ring-red-200;
+    }
+
+    .pesan-error {
+        @apply mt-1 text-[11px] text-red-600;
+    }
+
+    .chip,
+    .chip-pilih {
+        @apply inline-flex items-center rounded-full bg-pasir px-3 py-1 text-[11px] font-medium text-kopi;
+    }
+
+    .chip-pilih {
+        @apply cursor-pointer select-none transition;
+    }
+
+    .chip-pilih[aria-pressed='true'] {
+        @apply bg-tinta text-white;
+    }
+
+    .badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold;
+    }
+
+    .foto-placeholder {
+        @apply flex items-center justify-center bg-kopi text-[10px] font-medium uppercase tracking-[0.25em] text-white/40;
+    }
 }
