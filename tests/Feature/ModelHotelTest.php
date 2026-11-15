@@ -2,10 +2,14 @@
 
 use App\Enums\StatusKamar;
 use App\Enums\StatusReservasi;
+use App\Models\Fasilitas;
 use App\Models\Kamar;
+use App\Models\Pembatalan;
+use App\Models\Pembayaran;
 use App\Models\Reservasi;
 use App\Models\Tamu;
 use App\Models\TipeKamar;
+use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -132,8 +136,15 @@ it('mengisi data contoh lewat seeder dan aman dijalankan berulang', function () 
     expect(TipeKamar::count())->toBe(4)
         ->and(Kamar::count())->toBe(13)
         ->and(Tamu::count())->toBe(6)
-        ->and(Reservasi::count())->toBe(4)
-        ->and(Reservasi::orderBy('id')->pluck('kode_booking')->all())->toBe(['BK-0001', 'BK-0002', 'BK-0003', 'BK-0004'])
+        ->and(Reservasi::count())->toBe(6)
+        ->and(Reservasi::orderBy('id')->pluck('kode_booking')->all())->toBe(['BK-0001', 'BK-0002', 'BK-0003', 'BK-0004', 'BK-0005', 'BK-0006'])
         ->and(Reservasi::where('kode_booking', 'BK-0001')->first()->total_harga)->toBe('1050000.00')
-        ->and(Reservasi::where('kode_booking', 'BK-0003')->first()->total_harga)->toBe('1900000.00');
+        ->and(Reservasi::where('kode_booking', 'BK-0003')->first()->total_harga)->toBe('1900000.00')
+        ->and(Reservasi::where('kode_booking', 'BK-0006')->first()->detail()->count())->toBe(2)
+        ->and(User::count())->toBe(4)
+        ->and(User::where('email', 'admin@royalhotel.test')->value('role'))->toBe('admin')
+        ->and(Tamu::where('nik', '3374011234560001')->first()->user_id)->not->toBeNull()
+        ->and(Fasilitas::count())->toBe(6)
+        ->and(Pembayaran::count())->toBe(6)
+        ->and(Pembatalan::count())->toBe(2);
 });
