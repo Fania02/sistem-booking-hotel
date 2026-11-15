@@ -104,3 +104,12 @@ it('menolak menghapus tamu yang masih punya reservasi aktif', function () {
 
     $this->deleteJson("/api/v1/tamu/{$tamu->id}")->assertConflict();
 });
+
+it('menyimpan tamu tanpa alamat dengan nomor hp hingga 20 karakter', function () {
+    $this->postJson('/api/v1/tamu', [
+        'nama' => 'Tamu Tanpa Alamat',
+        'nik' => '3201010101010099',
+        'no_hp' => '+6281234567890123456',
+    ])->assertCreated()
+        ->assertJsonPath('data.no_hp', '+6281234567890123456');
+});
