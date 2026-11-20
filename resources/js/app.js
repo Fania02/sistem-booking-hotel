@@ -1,4 +1,5 @@
 //
+import { initDaftar, initKeluar, initMasuk } from './pages/auth';
 import { initLanding } from './pages/landing';
 import { initReservasi } from './pages/reservasi';
 import { initTamu } from './pages/tamu';
@@ -7,10 +8,13 @@ const halaman = {
     landing: initLanding,
     reservasi: initReservasi,
     tamu: initTamu,
+    masuk: initMasuk,
+    daftar: initDaftar,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     halaman[document.body.dataset.page]?.();
+    initKeluar();
 
     const tombolMenuAdmin = document.getElementById('tombol-menu-admin');
     const menuAdmin = document.getElementById('menu-admin-mobile');

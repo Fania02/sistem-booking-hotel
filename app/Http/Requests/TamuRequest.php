@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Nik;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class TamuRequest extends FormRequest
         return [
             'nama' => ['required', 'string', 'max:255'],
             'nik' => [
-                'required', 'string', 'digits:16',
+                'required', 'string', new Nik,
                 Rule::unique('tamu', 'nik')->ignore($this->route('tamu')),
             ],
             'no_hp' => ['required', 'string', 'max:20'],
