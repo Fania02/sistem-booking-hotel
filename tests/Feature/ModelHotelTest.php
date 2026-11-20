@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Peran;
 use App\Enums\StatusKamar;
 use App\Enums\StatusReservasi;
 use App\Models\Fasilitas;
@@ -142,7 +143,7 @@ it('mengisi data contoh lewat seeder dan aman dijalankan berulang', function () 
         ->and(Reservasi::where('kode_booking', 'BK-0003')->first()->total_harga)->toBe('1900000.00')
         ->and(Reservasi::where('kode_booking', 'BK-0006')->first()->detail()->count())->toBe(2)
         ->and(User::count())->toBe(4)
-        ->and(User::where('email', 'admin@royalhotel.test')->value('role'))->toBe('admin')
+        ->and(User::where('email', 'admin@royalhotel.test')->value('role'))->toBe(Peran::Admin)
         ->and(Tamu::where('nik', '3374011234560001')->first()->user_id)->not->toBeNull()
         ->and(Fasilitas::count())->toBe(6)
         ->and(Pembayaran::count())->toBe(6)

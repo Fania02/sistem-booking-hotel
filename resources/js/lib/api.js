@@ -22,11 +22,15 @@ function bentukQuery(params = {}) {
     return teks ? `?${teks}` : '';
 }
 
+const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
 async function kirim(method, path, { params, body } = {}) {
     const response = await fetch(`${BASE}${path}${bentukQuery(params)}`, {
         method,
+        credentials: 'same-origin',
         headers: {
             Accept: 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
             ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
@@ -37,6 +41,15 @@ async function kirim(method, path, { params, body } = {}) {
     }
 
     const json = await response.json().catch(() => null);
+
+    // Sesi admin habis: kembali ke halaman masuk.
+    if (response.status === 401 && location.pathname.startsWith('/admin')) {
+        location.assign('/masuk');
+    }
+
+    if (response.status === 419) {
+        throw new ApiError(419, { message: 'Sesi halaman sudah berakhir. Muat ulang halaman lalu coba lagi.' });
+    }
 
     if (!response.ok) {
         throw new ApiError(response.status, json);

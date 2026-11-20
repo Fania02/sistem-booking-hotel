@@ -36,6 +36,11 @@
                 @endif
             @endforeach
         </nav>
+        <div class="mt-auto border-t border-white/10 px-2 pt-4 text-xs">
+            <p class="font-semibold">{{ auth()->user()->name }}</p>
+            <p class="text-white/60">{{ auth()->user()->role->label() }}</p>
+            <button type="button" data-keluar class="mt-3 w-full rounded-lg bg-white/10 px-3 py-2 text-left text-white/80 hover:bg-white/20">Keluar</button>
+        </div>
     </aside>
 
     {{-- Top bar (mobile) --}}
@@ -57,6 +62,7 @@
                     <span class="block px-3 py-2.5 text-sm text-white/35">{{ $nama }}</span>
                 @endif
             @endforeach
+            <button type="button" data-keluar class="mt-4 block w-full rounded-lg bg-white/10 px-3 py-2.5 text-left text-sm text-white/80">Keluar ({{ auth()->user()->name }})</button>
         </div>
     </div>
 

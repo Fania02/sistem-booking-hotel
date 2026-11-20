@@ -186,14 +186,11 @@ async function kirimPesanan(event) {
 
     try {
         const reservasi = await denganLoading(tombol, async () => {
-            const tamuId = await simpanTamu(data);
-
             return (
-                await api.post('/reservasi', {
-                    tamu_id: tamuId,
+                await api.post('/booking', {
+                    ...data,
                     tgl_checkin,
                     tgl_checkout,
-                    sumber: 'online',
                     kamar_ids: [kamarId],
                 })
             ).data;
@@ -205,28 +202,6 @@ async function kirimPesanan(event) {
         $('#booking-total').textContent = `${tipe.nama_tipe} · Total ${formatRupiah(reservasi.total_harga)}`;
     } catch (error) {
         tampilkanError(form, error);
-    }
-}
-
-/** Buat tamu baru; bila NIK sudah terdaftar, pakai data tamu yang ada. */
-async function simpanTamu(data) {
-    try {
-        return (await api.post('/tamu', data)).data.id;
-    } catch (error) {
-        const nikGanda = error instanceof ApiError && error.status === 422 && error.errors.nik && Object.keys(error.errors).length === 1;
-
-        if (!nikGanda) {
-            throw error;
-        }
-
-        const { data: ditemukan } = await api.get('/tamu', { search: data.nik });
-        const tamu = ditemukan.find((t) => t.nik === data.nik);
-
-        if (!tamu) {
-            throw error;
-        }
-
-        return tamu.id;
     }
 }
 

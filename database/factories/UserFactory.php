@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Peran;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,24 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * Akun dengan peran tertentu. Kolom role tidak masuk Fillable, jadi diisi lewat state.
+     */
+    public function peran(Peran $peran): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => $peran->value]);
+    }
+
+    public function admin(): static
+    {
+        return $this->peran(Peran::Admin);
+    }
+
+    public function resepsionis(): static
+    {
+        return $this->peran(Peran::Resepsionis);
     }
 
     /**

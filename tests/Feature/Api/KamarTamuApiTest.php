@@ -5,9 +5,15 @@ use App\Models\Kamar;
 use App\Models\Reservasi;
 use App\Models\Tamu;
 use App\Models\TipeKamar;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->petugas = User::factory()->admin()->create();
+    $this->actingAs($this->petugas);
+});
 
 it('membuat, melihat, mengubah, dan menghapus kamar', function () {
     $tipe = TipeKamar::factory()->create();
