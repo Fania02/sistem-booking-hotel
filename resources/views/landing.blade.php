@@ -29,8 +29,8 @@
                     @foreach (config('foto.hero') as $i => $slide)
                         <figure class="hero-slide absolute inset-0 {{ $i === 0 ? 'is-aktif' : '' }}" data-parallax-lapis="14">
                             <img src="{{ $slide['url'] }}" data-cadangan="{{ $slide['cadangan'] }}" alt="{{ $slide['alt'] }}" class="h-full w-full scale-110 object-cover"
-                                 loading="{{ $i === 0 ? 'eager' : 'lazy' }}" draggable="false">
-                            <figcaption class="hero-teks absolute inset-x-0 bottom-0 bg-gradient-to-t from-tinta/80 to-transparent px-5 pb-9 pt-16 text-xs font-medium tracking-wide text-white">
+                                 loading="eager" draggable="false">
+                            <figcaption class="hero-teks absolute inset-x-0 bottom-0 bg-gradient-to-t from-tinta/80 to-transparent px-5 pb-9 pt-16 md:pb-28 text-xs font-medium tracking-wide text-white">
                                 {{ $slide['judul'] }}
                             </figcaption>
                         </figure>
@@ -43,12 +43,12 @@
                         <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>
                     </button>
 
-                    <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
+                    <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 md:bottom-24 items-center gap-1.5">
                         @foreach (config('foto.hero') as $d => $_)
                             <button type="button" class="slide-dot rounded-full {{ $d === 0 ? 'is-aktif' : '' }}" aria-label="Foto {{ $d + 1 }}"></button>
                         @endforeach
                     </div>
-                    <div class="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-white/20"><div class="slide-progress h-full bg-emas"></div></div>
+                    <div class="absolute inset-x-0 top-0 z-10 h-0.5 bg-white/20"><div class="slide-progress h-full bg-emas"></div></div>
                 </div>
             </div>
         </div>

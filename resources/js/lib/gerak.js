@@ -95,23 +95,30 @@ function initParallax() {
     });
 }
 
+/** Ganti ke ilustrasi cadangan; kalau cadangan pun gagal, sembunyikan gambar. */
+function gantiCadangan(gambar) {
+    const cadangan = gambar.dataset.cadangan;
+
+    if (cadangan && !gambar.src.endsWith(cadangan)) {
+        gambar.src = cadangan;
+    } else {
+        gambar.classList.add('foto-gagal');
+    }
+}
+
 function initFotoGagal() {
     document.addEventListener('error', (event) => {
-        const gambar = event.target;
-
-        if (gambar.tagName !== 'IMG') {
-            return;
-        }
-
-        // Coba ilustrasi cadangan dulu; kalau itu pun gagal, sembunyikan gambar.
-        const cadangan = gambar.dataset.cadangan;
-
-        if (cadangan && !gambar.src.endsWith(cadangan)) {
-            gambar.src = cadangan;
-        } else {
-            gambar.classList.add('foto-gagal');
+        if (event.target.tagName === 'IMG') {
+            gantiCadangan(event.target);
         }
     }, true);
+
+    // Gambar yang sudah gagal sebelum skrip ini jalan (event error sudah lewat)
+    document.querySelectorAll('img[data-cadangan]').forEach((gambar) => {
+        if (gambar.complete && gambar.naturalWidth === 0 && gambar.getAttribute('src')) {
+            gantiCadangan(gambar);
+        }
+    });
 }
 
 /** Efek header: bayangan setelah di-scroll. */
@@ -128,6 +135,8 @@ function initHeader() {
 }
 
 export function initGerak() {
+    // Efek "muncul saat scroll" hanya aktif bila JS ini berjalan, supaya konten tidak pernah tersembunyi.
+    document.documentElement.classList.add('js-gerak');
     initFotoGagal();
     initKartuMiring();
     initParallax();

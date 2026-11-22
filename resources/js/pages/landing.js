@@ -302,7 +302,13 @@ function initSlideshow() {
 }
 
 export function initLanding() {
-    initSlideshow();
+    muatTipe();
+
+    try {
+        initSlideshow();
+    } catch (error) {
+        console.error('[Royal Hotel] Slideshow gagal:', error);
+    }
 
     const form = $('#form-cari');
     const hari = hariIni();
@@ -342,6 +348,4 @@ export function initLanding() {
         menu.classList.toggle('hidden', menu.hidden);
         tombolMenu.setAttribute('aria-expanded', String(!menu.hidden));
     });
-
-    muatTipe();
 }

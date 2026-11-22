@@ -144,13 +144,13 @@
 }
 
 /* Muncul saat di-scroll */
-[data-reveal] {
+.js-gerak [data-reveal] {
     opacity: 0;
     transform: translateY(26px);
     transition: opacity 0.8s ease var(--d, 0ms), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms);
 }
 
-[data-reveal].is-tampil {
+.js-gerak [data-reveal].is-tampil {
     opacity: 1;
     transform: none;
 }
@@ -329,7 +329,7 @@ header.sticky.is-scroll {
         transition-duration: 0.01ms !important;
     }
 
-    [data-reveal] {
+    .js-gerak [data-reveal] {
         opacity: 1;
         transform: none;
     }

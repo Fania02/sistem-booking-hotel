@@ -8,73 +8,92 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
+/** Kelola akun (khusus admin). */
 class PenggunaController extends Controller
 {
-    /** Daftar pengguna dengan filter (admin) */
     public function index(Request $request): JsonResponse
     {
         $filter = $request->validate([
-            'search'   => ['nullable', 'string', 'max:100'],
-            'role'     => ['nullable', 'string'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'peran' => ['nullable', Rule::enum(Peran::class)],
         ]);
 
-        $users = User::query()
-            ->when(
-                $filter['search'] ?? null,
-                fn ($q, $s) => $q->where(
-                    fn ($w) => $w->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")
-                )
-            )
-            ->when($filter['role'] ?? null, fn ($q, $r) => $q->where('role', $r))
-            ->latest()
-            ->paginate($filter['per_page'] ?? 20);
+        $daftar = User::query()
+            ->when($filter['search'] ?? null, fn ($q, $cari) => $q->where(fn ($w) => $w->where('name', 'like', "%{$cari}%")->orWhere('email', 'like', "%{$cari}%")))
+            ->when($filter['peran'] ?? null, fn ($q, $peran) => $q->where('role', $peran))
+            ->orderBy('name')
+            ->limit(200)
+            ->get();
 
-        return response()->json($users);
+        return response()->json(['data' => $daftar->map(fn (User $u) => $this->bentuk($u, $request))->values()]);
     }
 
-    /** Tambah pengguna baru (admin) */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'unique:users,email'],
-            'role'     => ['required', 'string'],
-            'password' => ['required', Password::min(8)],
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'peran' => ['required', Rule::enum(Peran::class)],
+            'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $user = User::create($data);
+        $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+        $user->role = Peran::from($data['peran']);
+        $user->save();
 
-        return response()->json(['data' => $user, 'message' => 'Pengguna berhasil dibuat.'], 201);
+        return response()->json(['data' => $this->bentuk($user, $request)], 201);
     }
 
-    /** Ubah data pengguna (admin) */
-    public function update(Request $request, User $user): JsonResponse
+    public function update(Request $request, User $pengguna): JsonResponse
     {
         $data = $request->validate([
-            'name'     => ['sometimes', 'string', 'max:255'],
-            'email'    => ['sometimes', 'email', 'unique:users,email,' . $user->id],
-            'role'     => ['sometimes', 'string'],
-            'password' => ['nullable', Password::min(8)],
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($pengguna->id)],
+            'peran' => ['required', Rule::enum(Peran::class)],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
 
-        // Jangan update password jika kosong
-        if (empty($data['password'])) {
-            unset($data['password']);
+        if ($pengguna->id === $request->user()->id && $data['peran'] !== $pengguna->role->value) {
+            throw ValidationException::withMessages(['peran' => 'Kamu tidak bisa mengubah peran akunmu sendiri.']);
         }
 
-        $user->update($data);
+        $pengguna->name = $data['name'];
+        $pengguna->email = $data['email'];
+        $pengguna->role = Peran::from($data['peran']);
 
-        return response()->json(['data' => $user, 'message' => 'Pengguna diperbarui.']);
+        if (! empty($data['password'])) {
+            $pengguna->password = $data['password'];
+        }
+
+        $pengguna->save();
+
+        return response()->json(['data' => $this->bentuk($pengguna, $request)]);
     }
 
-    /** Hapus pengguna (admin) */
-    public function destroy(User $user): Response
+    public function destroy(Request $request, User $pengguna): Response|JsonResponse
     {
-        $user->delete();
+        if ($pengguna->id === $request->user()->id) {
+            return response()->json(['message' => 'Kamu tidak bisa menghapus akunmu sendiri.'], 409);
+        }
+
+        $pengguna->delete();
 
         return response()->noContent();
+    }
+
+    /** @return array<string, mixed> */
+    private function bentuk(User $u, Request $request): array
+    {
+        return [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'peran' => ['value' => $u->role->value, 'label' => $u->role->label()],
+            'saya' => $u->id === $request->user()->id,
+            'dibuat_pada' => $u->created_at?->toIso8601String(),
+        ];
     }
 }
