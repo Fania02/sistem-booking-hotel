@@ -1,13 +1,8 @@
 <?php
 
 use App\Enums\Peran;
-use App\Http\Controllers\Api\V1\AdminDashboardController;
-use App\Http\Controllers\Api\V1\AdminPembatalanController;
-use App\Http\Controllers\Api\V1\AdminPembayaranController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
-use App\Http\Controllers\Api\V1\PenggunaController;
-use App\Http\Controllers\Api\V1\TamuReservasiController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'landing')->name('beranda');
@@ -29,30 +24,6 @@ Route::prefix('api/v1')->name('api.v1.')->group(function (): void {
 });
 
 /*
-| API milik tamu yang sedang login (riwayat, bukti bayar, pembatalan).
-*/
-Route::prefix('api/v1/saya')->name('api.v1.saya.')->middleware('auth')->group(function (): void {
-    Route::get('reservasi', [TamuReservasiController::class, 'index'])->name('reservasi.index');
-    Route::post('reservasi/{reservasi}/pembayaran', [TamuReservasiController::class, 'bayar'])->name('reservasi.bayar');
-    Route::post('reservasi/{reservasi}/pembatalan', [TamuReservasiController::class, 'batal'])->name('reservasi.batal');
-});
-
-/*
-| API panel admin: hanya untuk petugas. Kelola pengguna khusus admin.
-*/
-Route::prefix('api/v1/admin')->name('api.v1.admin.')->middleware(['auth', 'peran:admin,resepsionis'])->group(function (): void {
-    Route::get('ringkasan', AdminDashboardController::class)->name('ringkasan');
-    Route::get('pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
-    Route::post('pembayaran/{pembayaran}/verifikasi', [AdminPembayaranController::class, 'verifikasi'])->name('pembayaran.verifikasi');
-    Route::get('pembatalan', [AdminPembatalanController::class, 'index'])->name('pembatalan.index');
-    Route::post('pembatalan/{pembatalan}/proses', [AdminPembatalanController::class, 'proses'])->name('pembatalan.proses');
-
-    Route::middleware('peran:admin')->group(function (): void {
-        Route::apiResource('pengguna', PenggunaController::class)->except('show')->parameters(['pengguna' => 'pengguna']);
-    });
-});
-
-/*
 | Halaman tamu: hanya untuk tamu yang sudah login.
 */
 Route::prefix('tamu')->name('tamu.')->middleware(['auth'])->group(function (): void {
@@ -71,7 +42,5 @@ Route::prefix('admin')->name('admin.')
         Route::view('tamu', 'admin.tamu')->name('tamu');
         Route::view('pembayaran', 'admin.pembayaran')->name('pembayaran');
         Route::view('pembatalan', 'admin.pembatalan')->name('pembatalan');
+        Route::view('pengguna', 'admin.pengguna')->name('pengguna');
     });
-
-// Kelola akun: khusus admin (resepsionis tidak boleh)
-Route::view('admin/pengguna', 'admin.pengguna')->middleware(['auth', 'peran:admin'])->name('admin.pengguna');
