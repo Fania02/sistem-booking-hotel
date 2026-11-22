@@ -2,15 +2,17 @@
 
 namespace App\Enums;
 
-use App\Enums\Concerns\SebagaiOpsi;
-
 enum Peran: string
 {
-    use SebagaiOpsi;
-
     case Admin = 'admin';
     case Resepsionis = 'resepsionis';
     case Tamu = 'tamu';
+
+    /** Peran yang boleh masuk panel admin. */
+    public static function staf(): array
+    {
+        return [self::Admin, self::Resepsionis];
+    }
 
     public function label(): string
     {
@@ -21,13 +23,8 @@ enum Peran: string
         };
     }
 
-    /**
-     * Peran petugas hotel (boleh masuk panel admin).
-     *
-     * @return list<self>
-     */
-    public static function staf(): array
+    public function adalahStaf(): bool
     {
-        return [self::Admin, self::Resepsionis];
+        return in_array($this, self::staf(), true);
     }
 }
