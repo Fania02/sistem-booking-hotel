@@ -20,6 +20,16 @@
             <div class="hidden items-center gap-2 md:flex">
                 {{-- TODO: arahkan ke halaman login setelah modul auth dari anggota tim lain selesai. --}}
                 <a href="{{ url('/admin/reservasi') }}" class="btn-garis">Masuk</a>
+                @auth
+                    @if (auth()->user()->adalahStaf())
+                        <a href="{{ url('/admin/dashboard') }}" class="btn-garis">Panel Admin</a>
+                    @else
+                        <a href="{{ url('/tamu/dashboard') }}" class="btn-garis">Riwayat Saya</a>
+                    @endif
+                    <button type="button" data-keluar class="btn-garis">Keluar</button>
+                @else
+                    <a href="{{ route('login') }}" class="btn-garis">Masuk</a>
+                @endauth
                 <a href="#form-cari" class="btn-gelap">Pesan Sekarang</a>
             </div>
 
