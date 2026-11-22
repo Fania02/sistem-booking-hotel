@@ -89,4 +89,29 @@ class ReservasiController extends Controller
 
         return response()->noContent();
     }
+
+    /**
+     * Riwayat reservasi milik tamu yang sedang login.
+     * Tamu dicocokkan via relasi user_id di tabel tamu.
+     */
+    public function milikSaya(Request $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+
+        // Cari data tamu yang terhubung dengan akun ini
+        $tamu = \App\Models\Tamu::where('user_id', $user->id)->first();
+
+        if (! $tamu) {
+            return ReservasiResource::collection(
+                Reservasi::query()->whereRaw('1 = 0')->paginate(20)
+            );
+        }
+
+        $reservasi = Reservasi::with(self::RELASI)
+            ->where('tamu_id', $tamu->id)
+            ->latest()
+            ->paginate(20);
+
+        return ReservasiResource::collection($reservasi);
+    }
 }
