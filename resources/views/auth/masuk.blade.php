@@ -4,13 +4,14 @@
 @section('page', 'masuk')
 
 @section('content')
-<section class="min-h-[80vh] grid md:grid-cols-2">
+<div class="mx-auto max-w-6xl px-5 py-6 md:py-10">
+<section class="kartu grid overflow-hidden md:grid-cols-[1fr_1.1fr]" data-reveal>
 
     {{-- Sisi kiri: foto hotel --}}
-    <div class="relative hidden overflow-hidden md:block">
+    <div class="group-foto relative hidden min-h-[34rem] overflow-hidden md:block">
         <img src="{{ config('foto.auth.url') }}" data-cadangan="{{ config('foto.auth.cadangan') }}" alt="Royal Hotel"
-             class="h-full w-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-r from-tinta/70 to-tinta/30 flex flex-col justify-end p-10 text-white">
+             class="zoom-foto absolute inset-0 h-full w-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-tinta/85 via-tinta/25 to-transparent flex flex-col justify-end p-10 text-white">
             <span class="inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium tracking-wide text-pasir mb-4 w-fit">
                 Hangat · Tenang · Nyaman
             </span>
@@ -22,8 +23,8 @@
     </div>
 
     {{-- Sisi kanan: form --}}
-    <div class="flex items-center justify-center px-6 py-14">
-        <div class="w-full max-w-sm">
+    <div class="flex items-center justify-center px-6 py-10 md:px-12">
+        <div class="w-full max-w-md">
             <a href="{{ url('/') }}" class="text-xs text-redam hover:text-tinta flex items-center gap-1 mb-8">
                 ← Kembali ke Beranda
             </a>
@@ -62,4 +63,5 @@
     </div>
 
 </section>
+</div>
 @endsection

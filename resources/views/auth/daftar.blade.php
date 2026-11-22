@@ -4,13 +4,14 @@
 @section('page', 'daftar')
 
 @section('content')
-<section class="min-h-[80vh] grid md:grid-cols-2">
+<div class="mx-auto max-w-6xl px-5 py-6 md:py-10">
+<section class="kartu grid overflow-hidden md:grid-cols-[1fr_1.1fr]" data-reveal>
 
     {{-- Sisi kiri: foto hotel --}}
-    <div class="relative hidden overflow-hidden md:block">
+    <div class="group-foto relative hidden min-h-[34rem] overflow-hidden md:block">
         <img src="{{ config('foto.hero.1.url') }}" data-cadangan="{{ config('foto.hero.1.cadangan') }}" alt="Royal Hotel"
-             class="h-full w-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-r from-tinta/70 to-tinta/30 flex flex-col justify-end p-10 text-white">
+             class="zoom-foto absolute inset-0 h-full w-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-tinta/85 via-tinta/25 to-transparent flex flex-col justify-end p-10 text-white">
             <span class="inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium tracking-wide text-pasir mb-4 w-fit">
                 Bergabung sekarang
             </span>
@@ -22,8 +23,8 @@
     </div>
 
     {{-- Sisi kanan: form --}}
-    <div class="flex items-center justify-center px-6 py-10">
-        <div class="w-full max-w-sm">
+    <div class="flex items-center justify-center px-6 py-10 md:px-12">
+        <div class="w-full max-w-md">
             <a href="{{ url('/') }}" class="text-xs text-redam hover:text-tinta flex items-center gap-1 mb-6">
                 ← Kembali ke Beranda
             </a>
@@ -41,6 +42,7 @@
                     <label class="label" for="d-email">Email</label>
                     <input class="input" id="d-email" name="email" type="email" autocomplete="email">
                 </div>
+                <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label class="label" for="d-nik">NIK</label>
                     <input class="input" id="d-nik" name="nik" inputmode="numeric" maxlength="16" placeholder="16 digit">
@@ -49,10 +51,12 @@
                     <label class="label" for="d-hp">No. HP</label>
                     <input class="input" id="d-hp" name="no_hp" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx">
                 </div>
+                </div>
                 <div>
                     <label class="label" for="d-alamat">Alamat (opsional)</label>
                     <textarea class="input" id="d-alamat" name="alamat" rows="2"></textarea>
                 </div>
+                <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label class="label" for="d-password">Password</label>
                     <div class="relative">
@@ -72,6 +76,7 @@
                     <label class="label" for="d-password2">Ulangi password</label>
                     <input class="input" id="d-password2" name="password_confirmation" type="password" autocomplete="new-password">
                 </div>
+                </div>
                 <button type="submit" class="btn-gelap mt-2 w-full hover-btn">Daftar Sekarang</button>
             </form>
 
@@ -83,4 +88,5 @@
     </div>
 
 </section>
+</div>
 @endsection
