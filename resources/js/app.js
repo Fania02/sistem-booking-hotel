@@ -1,13 +1,11 @@
 //
+import { initDaftar, initKeluar, initMasuk } from './pages/auth';
 import { initLanding } from './pages/landing';
 import { initReservasi } from './pages/reservasi';
 import { initTamu } from './pages/tamu';
 import { initTamuDashboard } from './pages/tamu-dashboard';
 
 const halaman = {
-    landing: initLanding,
-    reservasi: initReservasi,
-    tamu: initTamu,
     landing:          initLanding,
     reservasi:        initReservasi,
     tamu:             initTamu,
@@ -18,6 +16,7 @@ const halaman = {
 
 document.addEventListener('DOMContentLoaded', () => {
     halaman[document.body.dataset.page]?.();
+    initKeluar();
 
     const tombolMenuAdmin = document.getElementById('tombol-menu-admin');
     const menuAdmin = document.getElementById('menu-admin-mobile');

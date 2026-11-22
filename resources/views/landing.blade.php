@@ -24,16 +24,18 @@
             </div>
 
             {{-- Hero slideshow --}}
-            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8">
-                <div id="hero-slideshow" class="relative aspect-[4/3] h-full w-full overflow-hidden rounded-xl md:aspect-auto md:min-h-72">
-                    @foreach (['hero-1.jpg', 'hero-2.jpg', 'hero-3.jpg'] as $i => $foto)
+            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8 relative overflow-hidden rounded-3xl">
+                <div id="hero-slideshow" class="relative aspect-[4/3] h-full w-full rounded-xl overflow-hidden md:aspect-auto md:min-h-72">
+                    @foreach (['hero-1.jpg','hero-2.jpg','hero-3.jpg'] as $i => $foto)
                         <img src="{{ asset('images/'.$foto) }}"
-                             alt="Royal Hotel foto {{ $i + 1 }}"
-                             class="hero-slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 {{ $i === 0 ? 'opacity-100' : 'opacity-0' }}">
+                             alt="Royal Hotel foto {{ $i+1 }}"
+                             class="hero-slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 {{ $i === 0 ? 'opacity-100' : 'opacity-0' }}"
+                             data-slide="{{ $i }}">
                     @endforeach
-                    <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-                        @foreach ([0, 1, 2] as $d)
-                            <button type="button" class="slide-dot size-1.5 rounded-full bg-white/50 transition-all" aria-label="Slide {{ $d + 1 }}"></button>
+                    {{-- Dots indicator --}}
+                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        @foreach ([0,1,2] as $d)
+                            <button type="button" class="slide-dot size-1.5 rounded-full bg-white/50 transition-all" data-dot="{{ $d }}" aria-label="Slide {{ $d+1 }}"></button>
                         @endforeach
                     </div>
                 </div>
@@ -114,8 +116,10 @@
 
     {{-- Fasilitas --}}
     <section id="fasilitas" class="mt-20 grid scroll-mt-20 items-center gap-8 md:grid-cols-[1.1fr_1fr]">
-        <div class="relative aspect-[4/3] overflow-hidden rounded-3xl">
-            <img src="{{ asset('images/fasilitas.jpg') }}" alt="Fasilitas Royal Hotel" class="h-full w-full object-cover">
+        <div class="relative aspect-[4/3] rounded-3xl overflow-hidden group">
+            <img src="{{ asset('images/fasilitas.jpg') }}" alt="Fasilitas Royal Hotel"
+                 class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+            <div class="absolute inset-0 bg-gradient-to-t from-tinta/40 to-transparent"></div>
         </div>
         <div>
             <p class="eyebrow">Fasilitas</p>
