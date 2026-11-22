@@ -50,6 +50,7 @@ class DashboardController extends Controller
                 'pembayaran_menunggu_verifikasi' => Pembayaran::query()->where('status', StatusVerifikasi::MenungguVerifikasi->value)->count(),
                 'pembatalan_diajukan' => Pembatalan::query()->where('status', StatusPembatalan::Diajukan->value)->count(),
             ],
+            'grafik_kedatangan' => $this->grafikKedatangan(),
             'reservasi_terbaru' => ReservasiResource::collection(
                 Reservasi::query()->with(['tamu', 'detail.kamar.tipeKamar'])->latest('id')->limit(5)->get(),
             ),
@@ -65,5 +66,32 @@ class DashboardController extends Controller
         }
 
         return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Jumlah kedatangan (check-in) per hari untuk 7 hari ke depan, tidak termasuk reservasi batal.
+     *
+     * @return list<array{tanggal: string, hari: string, jumlah: int}>
+     */
+    private function grafikKedatangan(): array
+    {
+        $mulai = now()->startOfDay();
+
+        $kedatangan = Reservasi::query()
+            ->where('status', '!=', StatusReservasi::Batal->value)
+            ->whereDate('tgl_checkin', '>=', $mulai->toDateString())
+            ->whereDate('tgl_checkin', '<=', $mulai->copy()->addDays(6)->toDateString())
+            ->get(['id', 'tgl_checkin'])
+            ->countBy(fn (Reservasi $reservasi) => $reservasi->tgl_checkin->toDateString());
+
+        return collect(range(0, 6))->map(function (int $hariKe) use ($mulai, $kedatangan): array {
+            $tanggal = $mulai->copy()->addDays($hariKe);
+
+            return [
+                'tanggal' => $tanggal->toDateString(),
+                'hari' => $tanggal->locale('id')->isoFormat('ddd'),
+                'jumlah' => (int) $kedatangan->get($tanggal->toDateString(), 0),
+            ];
+        })->all();
     }
 }

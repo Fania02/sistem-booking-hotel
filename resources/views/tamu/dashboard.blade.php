@@ -70,8 +70,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="label" for="by-bukti">Foto / PDF bukti (maks. 4 MB)</label>
-                    <input class="input file:mr-3 file:rounded-full file:border-0 file:bg-pasir file:px-3 file:py-1 file:text-[11px] file:font-medium file:text-kopi" id="by-bukti" name="bukti" type="file" accept="image/png,image/jpeg,application/pdf">
+                    <label class="label" for="by-bukti">Foto bukti (JPG, PNG, atau WEBP, maks. 2 MB)</label>
+                    <input class="input file:mr-3 file:rounded-full file:border-0 file:bg-pasir file:px-3 file:py-1 file:text-[11px] file:font-medium file:text-kopi" id="by-bukti" name="bukti_bayar" type="file" accept="image/png,image/jpeg,image/webp">
                 </div>
                 <img id="bayar-preview" alt="Pratinjau bukti" class="max-h-40 w-full rounded-xl object-contain" hidden>
             </div>

@@ -20,6 +20,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'peran' => $this->role->opsi(),
             'staf' => $this->adalahStaf(),
+            'dibuat_pada' => $this->created_at?->toIso8601String(),
+            'saya' => (bool) $request->user()?->is($this->resource),
         ];
     }
 }

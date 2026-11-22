@@ -31,7 +31,7 @@
         <div class="mt-4 rounded-xl bg-white p-4 text-xs" id="p-ringkasan"></div>
         <div class="mt-4">
             <label class="label" for="p-catatan">Catatan untuk tamu (wajib saat menolak)</label>
-            <textarea class="input" id="p-catatan" name="catatan" rows="2"></textarea>
+            <textarea class="input" id="p-catatan" name="catatan_petugas" rows="2"></textarea>
         </div>
         <div class="mt-5 grid grid-cols-2 gap-3">
             <button type="button" class="btn-garis" data-keputusan="tolak">Tolak</button>

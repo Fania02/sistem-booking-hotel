@@ -34,20 +34,45 @@ const fotoKamar = (tipe) => {
     return foto[String(tipe ?? '').toLowerCase()] ?? foto.default ?? '';
 };
 
+const nilai = (opsi) => opsi?.value ?? opsi;
+
+/**
+ * Menyesuaikan data reservasi dari API (ReservasiResource) dengan yang dipakai tampilan.
+ */
+function sesuaikan(r) {
+    const pembayaran = r.pembayaran ?? [];
+    const menungguVerifikasi = pembayaran
+        .filter((p) => nilai(p.status) === 'menunggu_verifikasi')
+        .reduce((jumlah, p) => jumlah + Number(p.jumlah_bayar), 0);
+    const aktif = ['menunggu', 'dikonfirmasi', 'checkin'].includes(r.status.value);
+    const sisaBisaDibayar = Math.max(0, Number(r.sisa_tagihan ?? 0) - menungguVerifikasi);
+
+    return {
+        ...r,
+        kamar: (r.kamar ?? []).map((d) => ({ tipe: d.kamar?.tipe_kamar?.nama_tipe, nomor: d.kamar?.nomor_kamar })),
+        sudah_dibayar: Number(r.total_dibayar ?? 0),
+        menunggu_verifikasi: menungguVerifikasi,
+        sisa_bisa_dibayar: sisaBisaDibayar,
+        bisa_bayar: aktif && sisaBisaDibayar > 0,
+        bisa_batal: ['menunggu', 'dikonfirmasi'].includes(r.status.value) && nilai(r.pembatalan?.status) !== 'diajukan',
+    };
+}
+
 const tanggalPanjang = (iso) => formatTanggal(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 
 function barisPembayaran(p) {
-    const [label, warna] = STATUS_PEMBAYARAN[p.status] ?? [p.status, 'bg-stone-200 text-stone-700'];
-    const bukti = p.bukti_url
-        ? `<a href="${escapeHtml(p.bukti_url)}" target="_blank" rel="noopener" class="font-medium text-emas-tua hover:underline">Lihat bukti</a>`
+    const status = nilai(p.status);
+    const [label, warna] = STATUS_PEMBAYARAN[status] ?? [p.status?.label ?? status, 'bg-stone-200 text-stone-700'];
+    const bukti = p.bukti_bayar_url
+        ? `<a href="${escapeHtml(p.bukti_bayar_url)}" target="_blank" rel="noopener" class="font-medium text-emas-tua hover:underline">Lihat bukti</a>`
         : '';
 
     return `
         <li class="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-            <span>${formatRupiah(p.jumlah_bayar)} · <span class="uppercase text-redam">${escapeHtml(p.metode)}</span> · <span class="text-redam">${formatWaktu(p.tgl_bayar)}</span></span>
+            <span>${formatRupiah(p.jumlah_bayar)} · <span class="uppercase text-redam">${escapeHtml(p.metode?.label ?? p.metode)}</span> · <span class="text-redam">${formatWaktu(p.tgl_bayar)}</span></span>
             <span class="flex items-center gap-2">${bukti}<span class="badge ${warna}">${label}</span></span>
         </li>
-        ${p.status === 'ditolak' && p.catatan ? `<li class="-mt-1 text-[10px] text-red-600">Catatan petugas: ${escapeHtml(p.catatan)}</li>` : ''}`;
+        ${status === 'ditolak' && p.catatan ? `<li class="-mt-1 text-[10px] text-red-600">Catatan petugas: ${escapeHtml(p.catatan)}</li>` : ''}`;
 }
 
 function infoPembatalan(p) {
@@ -58,7 +83,7 @@ function infoPembatalan(p) {
         disetujui: ['bg-stone-100 text-stone-700', 'Pembatalan disetujui.'],
         ditolak: ['bg-red-50 text-red-700', `Pembatalan ditolak.${p.catatan_petugas ? ` Catatan: ${escapeHtml(p.catatan_petugas)}` : ''}`],
     };
-    const [warna, teks] = peta[p.status] ?? ['bg-stone-100 text-stone-700', ''];
+    const [warna, teks] = peta[nilai(p.status)] ?? ['bg-stone-100 text-stone-700', ''];
 
     return `<p class="mt-3 rounded-lg px-3 py-2 text-[11px] ${warna}">${teks}</p>`;
 }
@@ -122,8 +147,8 @@ function render() {
     segarkanReveal($('#riwayat-daftar'));
 }
 
-function simpan(reservasi) {
-    state.daftar = state.daftar.map((r) => (r.id === reservasi.id ? reservasi : r));
+async function muatRiwayat() {
+    state.daftar = (await api.get('/saya/reservasi')).data.map(sesuaikan);
     render();
 }
 
@@ -138,9 +163,9 @@ function bukaBayar(r) {
     form.reset();
     bersihkanError(form);
     $('#bayar-preview').hidden = true;
-    $('#bayar-ringkasan').innerHTML = `${ringkasan(r)}<p class="mt-2 font-medium text-emas-tua">Sisa tagihan: ${formatRupiah(r.sisa_tagihan)}</p>`;
-    form.jumlah_bayar.value = Math.round(r.sisa_tagihan);
-    form.jumlah_bayar.max = Math.round(r.sisa_tagihan);
+    $('#bayar-ringkasan').innerHTML = `${ringkasan(r)}<p class="mt-2 font-medium text-emas-tua">Sisa tagihan: ${formatRupiah(r.sisa_bisa_dibayar)}</p>`;
+    form.jumlah_bayar.value = Math.round(r.sisa_bisa_dibayar);
+    form.jumlah_bayar.max = Math.round(r.sisa_bisa_dibayar);
     $('#modal-bayar').showModal();
 }
 
@@ -159,10 +184,10 @@ async function kirimBayar(event) {
     bersihkanError(form);
 
     try {
-        const { data } = await denganLoading($('button[type="submit"]', form), () =>
+        await denganLoading($('button[type="submit"]', form), () =>
             api.upload(`/saya/reservasi/${state.terpilih.id}/pembayaran`, new FormData(form)),
         );
-        simpan(data);
+        await muatRiwayat();
         $('#modal-bayar').close();
         toast('Bukti pembayaran terkirim. Menunggu verifikasi petugas.');
     } catch (error) {
@@ -176,10 +201,10 @@ async function kirimBatal(event) {
     bersihkanError(form);
 
     try {
-        const { data } = await denganLoading($('button[type="submit"]', form), () =>
+        await denganLoading($('button[type="submit"]', form), () =>
             api.post(`/saya/reservasi/${state.terpilih.id}/pembatalan`, Object.fromEntries(new FormData(form))),
         );
-        simpan(data);
+        await muatRiwayat();
         $('#modal-batal').close();
         toast('Pengajuan pembatalan terkirim.');
     } catch (error) {
@@ -222,8 +247,7 @@ export async function initTamuDashboard() {
     });
 
     try {
-        state.daftar = (await api.get('/saya/reservasi')).data;
-        render();
+        await muatRiwayat();
     } catch (error) {
         $('#riwayat-daftar').innerHTML = `<p class="kartu p-5 text-xs text-red-600">Gagal memuat riwayat: ${escapeHtml(error.message)}</p>`;
     }

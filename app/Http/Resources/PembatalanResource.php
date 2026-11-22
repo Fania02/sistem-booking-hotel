@@ -25,6 +25,13 @@ class PembatalanResource extends JsonResource
             'tgl_diproses' => $this->tgl_diproses?->toIso8601String(),
             'diproses_oleh' => $this->whenLoaded('pemroses', fn () => $this->pemroses?->name),
             'catatan_petugas' => $this->catatan_petugas,
+            'reservasi' => $this->whenLoaded('reservasi', fn () => [
+                'kode_booking' => $this->reservasi->kode_booking,
+                'tgl_checkin' => $this->reservasi->tgl_checkin->toDateString(),
+                'tgl_checkout' => $this->reservasi->tgl_checkout->toDateString(),
+                'total_harga' => (float) $this->reservasi->total_harga,
+                'status_pembayaran' => $this->reservasi->status_pembayaran->opsi(),
+            ]),
         ];
     }
 }

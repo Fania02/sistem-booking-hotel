@@ -11,7 +11,7 @@ function baris(u) {
         <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition hover:bg-krem/60">
             <div class="min-w-0">
                 <p class="truncate text-sm font-semibold">${escapeHtml(u.name)} ${u.saya ? '<span class="text-[10px] font-normal text-redam">(kamu)</span>' : ''}</p>
-                <p class="truncate text-[11px] text-redam">${escapeHtml(u.email)} · sejak ${formatTanggal(u.dibuat_pada, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                <p class="truncate text-[11px] text-redam">${escapeHtml(u.email)}${u.dibuat_pada ? ` · sejak ${formatTanggal(u.dibuat_pada, { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}</p>
             </div>
             <div class="flex items-center gap-2">
                 <span class="badge ${WARNA[u.peran.value] ?? ''}">${escapeHtml(u.peran.label)}</span>
@@ -27,7 +27,9 @@ function render() {
 
 async function muat() {
     try {
-        state.daftar = (await api.get('/admin/pengguna', { search: $('#cari').value, peran: $('#filter-peran').value })).data;
+        const peran = $('#filter-peran').value;
+        const semua = (await api.get('/pengguna', { search: $('#cari').value })).data;
+        state.daftar = peran ? semua.filter((u) => u.peran.value === peran) : semua;
         render();
     } catch (error) {
         $('#daftar').innerHTML = `<p class="p-5 text-xs text-red-600">Gagal memuat: ${escapeHtml(error.message)}</p>`;
@@ -62,7 +64,7 @@ async function simpan(event) {
 
     try {
         await denganLoading($('button[type="submit"]', form), () =>
-            state.terpilih ? api.put(`/admin/pengguna/${state.terpilih.id}`, data) : api.post('/admin/pengguna', data),
+            state.terpilih ? api.put(`/pengguna/${state.terpilih.id}`, data) : api.post('/pengguna', data),
         );
         $('#modal-pengguna').close();
         toast(state.terpilih ? 'Akun diperbarui.' : 'Akun dibuat.');
@@ -93,7 +95,7 @@ export function initAdminPengguna() {
 
             if (u && confirm(`Hapus akun ${u.name}? Tindakan ini tidak bisa dibatalkan.`)) {
                 try {
-                    await api.delete(`/admin/pengguna/${u.id}`);
+                    await api.delete(`/pengguna/${u.id}`);
                     toast('Akun dihapus.');
                     muat();
                 } catch (error) {

@@ -33,7 +33,7 @@ class PembayaranController extends Controller
 
         return PembayaranResource::collection(
             Pembayaran::query()
-                ->with(['reservasi', 'verifikator'])
+                ->with(['reservasi.tamu', 'verifikator'])
                 ->when($filter['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
                 ->when($filter['reservasi_id'] ?? null, fn ($q, $id) => $q->where('reservasi_id', $id))
                 ->latest('id')
@@ -64,6 +64,6 @@ class PembayaranController extends Controller
             $data['catatan'] ?? null,
         );
 
-        return new PembayaranResource($pembayaran->load(['reservasi', 'verifikator']));
+        return new PembayaranResource($pembayaran->load(['reservasi.tamu', 'verifikator']));
     }
 }
