@@ -3,11 +3,13 @@ import { initGerak } from './lib/gerak';
 import { initLanding } from './pages/landing';
 import { initReservasi } from './pages/reservasi';
 import { initTamu } from './pages/tamu';
+import { initTamuDashboard } from './pages/tamu-dashboard';
 
 const halaman = {
     landing: initLanding,
     reservasi: initReservasi,
     tamu: initTamu,
+    'tamu-dashboard': initTamuDashboard,
     masuk: initMasuk,
     daftar: initDaftar,
 };

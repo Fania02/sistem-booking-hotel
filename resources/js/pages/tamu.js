@@ -1,221 +1,230 @@
 import { api } from '../lib/api';
-import { escapeHtml, formatRupiah } from '../lib/format';
+import { escapeHtml, formatRupiah, formatTanggal, formatWaktu } from '../lib/format';
+import { segarkanReveal } from '../lib/gerak';
 import { $, $$, bersihkanError, denganLoading, tampilkanError, toast } from '../lib/ui';
 
-const FASILITAS_AWAL = ['Wi-Fi', 'AC', 'TV', 'Kolam renang', 'Spa', 'Sarapan'];
-const PESAN_BELUM_ADA = 'Endpoint API untuk ini belum dibuat oleh tim backend, jadi data belum bisa disimpan.';
-
-const state = {
-    sedangUbah: null, // id tamu yang sedang diedit
-    fasilitas: [...FASILITAS_AWAL],
-    fasilitasDipilih: new Set(['Wi-Fi', 'AC']),
+const WARNA_STATUS = {
+    menunggu: 'bg-amber-100 text-amber-800',
+    dikonfirmasi: 'bg-sky-100 text-sky-800',
+    checkin: 'bg-emerald-100 text-emerald-800',
+    selesai: 'bg-stone-200 text-stone-700',
+    batal: 'bg-red-100 text-red-700',
 };
 
-/* ---------- Tamu ---------- */
+const WARNA_BAYAR = { belum_bayar: 'bg-red-50 text-red-700', dp: 'bg-amber-100 text-amber-800', lunas: 'bg-emerald-100 text-emerald-800' };
 
-function renderTamu(daftar) {
-    $('#kosong-tamu').hidden = daftar.length > 0;
-    $('#tabel-tamu').innerHTML = daftar
-        .map(
-            (t) => `
-        <tr>
-            <td class="py-2.5 pr-3 font-medium">${escapeHtml(t.nama)}</td>
-            <td class="px-3 py-2.5 text-redam">${escapeHtml(t.nik)}</td>
-            <td class="px-3 py-2.5 text-redam">${escapeHtml(t.no_hp)}</td>
-            <td class="py-2.5 pl-3 text-right">
-                <button type="button" class="font-semibold text-emas-tua hover:underline" data-ubah='${escapeHtml(JSON.stringify(t))}'>Ubah</button>
-                <button type="button" class="ml-3 font-semibold text-red-700 hover:underline" data-hapus="${t.id}">Hapus</button>
-            </td>
-        </tr>`,
-        )
+const STATUS_PEMBAYARAN = {
+    menunggu_verifikasi: ['Menunggu verifikasi', 'bg-amber-100 text-amber-800'],
+    diterima: ['Diterima', 'bg-emerald-100 text-emerald-800'],
+    ditolak: ['Ditolak', 'bg-red-100 text-red-700'],
+};
+
+const FILTER = {
+    semua: () => true,
+    aktif: (r) => ['menunggu', 'dikonfirmasi', 'checkin'].includes(r.status.value),
+    selesai: (r) => r.status.value === 'selesai',
+    batal: (r) => r.status.value === 'batal',
+};
+
+const state = { daftar: [], filter: 'semua', terpilih: null };
+
+const fotoKamar = (tipe) => {
+    const foto = window.FOTO?.kamar ?? {};
+
+    return foto[String(tipe ?? '').toLowerCase()] ?? foto.default ?? '';
+};
+
+const tanggalPanjang = (iso) => formatTanggal(iso, { day: '2-digit', month: 'short', year: 'numeric' });
+
+function barisPembayaran(p) {
+    const [label, warna] = STATUS_PEMBAYARAN[p.status] ?? [p.status, 'bg-stone-200 text-stone-700'];
+    const bukti = p.bukti_url
+        ? `<a href="${escapeHtml(p.bukti_url)}" target="_blank" rel="noopener" class="font-medium text-emas-tua hover:underline">Lihat bukti</a>`
+        : '';
+
+    return `
+        <li class="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span>${formatRupiah(p.jumlah_bayar)} · <span class="uppercase text-redam">${escapeHtml(p.metode)}</span> · <span class="text-redam">${formatWaktu(p.tgl_bayar)}</span></span>
+            <span class="flex items-center gap-2">${bukti}<span class="badge ${warna}">${label}</span></span>
+        </li>
+        ${p.status === 'ditolak' && p.catatan ? `<li class="-mt-1 text-[10px] text-red-600">Catatan petugas: ${escapeHtml(p.catatan)}</li>` : ''}`;
+}
+
+function infoPembatalan(p) {
+    if (!p) return '';
+
+    const peta = {
+        diajukan: ['bg-amber-50 text-amber-800', 'Pengajuan pembatalan menunggu persetujuan petugas.'],
+        disetujui: ['bg-stone-100 text-stone-700', 'Pembatalan disetujui.'],
+        ditolak: ['bg-red-50 text-red-700', `Pembatalan ditolak.${p.catatan_petugas ? ` Catatan: ${escapeHtml(p.catatan_petugas)}` : ''}`],
+    };
+    const [warna, teks] = peta[p.status] ?? ['bg-stone-100 text-stone-700', ''];
+
+    return `<p class="mt-3 rounded-lg px-3 py-2 text-[11px] ${warna}">${teks}</p>`;
+}
+
+function kartu(r) {
+    const tipe = r.kamar[0]?.tipe;
+    const chips = r.kamar
+        .map((k) => `<span class="chip">${escapeHtml(k.tipe ?? 'Kamar')} · ${escapeHtml(k.nomor ?? '-')}</span>`)
         .join('');
+    const aksi = [
+        r.bisa_bayar ? `<button type="button" class="btn-emas !px-4 !py-2" data-aksi="bayar" data-id="${r.id}">Upload bukti bayar</button>` : '',
+        r.bisa_batal ? `<button type="button" class="btn-garis !px-4 !py-2" data-aksi="batal" data-id="${r.id}">Ajukan pembatalan</button>` : '',
+    ].join('');
+
+    return `
+        <article class="kartu overflow-hidden md:grid md:grid-cols-[15rem_1fr]" data-tilt data-reveal>
+            <div class="h-40 overflow-hidden bg-kopi md:h-full">
+                <img src="${escapeHtml(fotoKamar(tipe))}" alt="Kamar ${escapeHtml(tipe ?? '')}" class="zoom-foto h-full w-full object-cover" loading="lazy">
+            </div>
+            <div class="p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="judul text-lg">${escapeHtml(r.kode_booking)}</h2>
+                    <span class="flex gap-1.5">
+                        <span class="badge ${WARNA_STATUS[r.status.value] ?? ''}">${escapeHtml(r.status.label)}</span>
+                        <span class="badge ${WARNA_BAYAR[r.status_pembayaran.value] ?? ''}">${escapeHtml(r.status_pembayaran.label)}</span>
+                    </span>
+                </div>
+                <p class="mt-1 text-xs text-redam">${tanggalPanjang(r.tgl_checkin)} – ${tanggalPanjang(r.tgl_checkout)} · ${r.jumlah_malam} malam</p>
+                <div class="mt-3 flex flex-wrap gap-1.5">${chips}</div>
+
+                <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold">${formatRupiah(r.total_harga)}</p>
+                        <p class="text-[10px] text-redam">Dibayar ${formatRupiah(r.sudah_dibayar)}${r.menunggu_verifikasi > 0 ? ` · ${formatRupiah(r.menunggu_verifikasi)} diverifikasi` : ''}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">${aksi}</div>
+                </div>
+
+                ${r.pembayaran.length ? `<ul class="mt-4 grid gap-1.5 border-t border-garis pt-3">${r.pembayaran.map(barisPembayaran).join('')}</ul>` : ''}
+                ${infoPembatalan(r.pembatalan)}
+            </div>
+        </article>`;
 }
 
-async function muatTamu(cari = '') {
-    try {
-        renderTamu((await api.get('/tamu', { search: cari, per_page: 50 })).data);
-    } catch (error) {
-        toast(error.message, 'error');
-    }
+function render() {
+    const daftar = state.daftar.filter(FILTER[state.filter]);
+
+    $('#riwayat-daftar').innerHTML = daftar.length
+        ? daftar.map(kartu).join('')
+        : `<div class="kartu p-10 text-center">
+               <p class="judul text-lg">Belum ada booking di sini</p>
+               <p class="mt-1 text-xs text-redam">Yuk pilih kamar dan mulai menginap.</p>
+               <a href="/#tipe-kamar" class="btn-gelap mt-4">Lihat kamar</a>
+           </div>`;
+
+    $('#stat-total').textContent = state.daftar.length;
+    $('#stat-aktif').textContent = state.daftar.filter(FILTER.aktif).length;
+    $('#stat-verif').textContent = state.daftar.filter((r) => r.menunggu_verifikasi > 0).length;
+
+    $$('[data-filter]').forEach((el) => el.setAttribute('aria-pressed', String(el.dataset.filter === state.filter)));
+    segarkanReveal($('#riwayat-daftar'));
 }
 
-function perbaruiHitungNik() {
-    const panjang = $('#t-nik').value.length;
-    $('#nik-hitung').textContent = `${panjang}/16`;
-    $('#nik-bar').style.width = `${(panjang / 16) * 100}%`;
+function simpan(reservasi) {
+    state.daftar = state.daftar.map((r) => (r.id === reservasi.id ? reservasi : r));
+    render();
 }
 
-function resetFormTamu() {
-    const form = $('#form-tamu');
+function ringkasan(r) {
+    return `<div class="flex items-center justify-between"><span class="judul text-sm">${escapeHtml(r.kode_booking)}</span><span class="font-semibold">${formatRupiah(r.total_harga)}</span></div>
+        <p class="mt-1 text-redam">${tanggalPanjang(r.tgl_checkin)} – ${tanggalPanjang(r.tgl_checkout)} · ${r.jumlah_malam} malam</p>`;
+}
+
+function bukaBayar(r) {
+    state.terpilih = r;
+    const form = $('#form-bayar');
     form.reset();
     bersihkanError(form);
-    state.sedangUbah = null;
-    $('#judul-form-tamu').textContent = 'Identitas Tamu';
-    $('#tombol-simpan-tamu').textContent = 'Simpan Tamu';
-    perbaruiHitungNik();
+    $('#bayar-preview').hidden = true;
+    $('#bayar-ringkasan').innerHTML = `${ringkasan(r)}<p class="mt-2 font-medium text-emas-tua">Sisa tagihan: ${formatRupiah(r.sisa_tagihan)}</p>`;
+    form.jumlah_bayar.value = Math.round(r.sisa_tagihan);
+    form.jumlah_bayar.max = Math.round(r.sisa_tagihan);
+    $('#modal-bayar').showModal();
 }
 
-async function simpanTamu(event) {
-    event.preventDefault();
+function bukaBatal(r) {
+    state.terpilih = r;
+    const form = $('#form-batal');
+    form.reset();
+    bersihkanError(form);
+    $('#batal-ringkasan').innerHTML = ringkasan(r);
+    $('#modal-batal').showModal();
+}
 
+async function kirimBayar(event) {
+    event.preventDefault();
     const form = event.currentTarget;
     bersihkanError(form);
 
-    const data = Object.fromEntries(new FormData(form));
-    const ubah = state.sedangUbah;
-
     try {
-        await denganLoading($('#tombol-simpan-tamu'), () => (ubah ? api.put(`/tamu/${ubah}`, data) : api.post('/tamu', data)));
-        toast(ubah ? 'Data tamu diperbarui.' : 'Tamu baru disimpan.');
-        resetFormTamu();
-        muatTamu($('#cari-tamu').value.trim());
+        const { data } = await denganLoading($('button[type="submit"]', form), () =>
+            api.upload(`/saya/reservasi/${state.terpilih.id}/pembayaran`, new FormData(form)),
+        );
+        simpan(data);
+        $('#modal-bayar').close();
+        toast('Bukti pembayaran terkirim. Menunggu verifikasi petugas.');
     } catch (error) {
         tampilkanError(form, error);
     }
 }
 
-function mulaiUbah(tamu) {
-    const form = $('#form-tamu');
-    state.sedangUbah = tamu.id;
-    form.nama.value = tamu.nama;
-    form.nik.value = tamu.nik;
-    form.no_hp.value = tamu.no_hp;
-    form.alamat.value = tamu.alamat ?? '';
-    $('#judul-form-tamu').textContent = 'Ubah Data Tamu';
-    $('#tombol-simpan-tamu').textContent = 'Simpan Perubahan';
-    perbaruiHitungNik();
-    form.nama.focus();
-    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-async function hapusTamu(id) {
-    if (!window.confirm('Hapus tamu ini?')) {
-        return;
-    }
-
-    try {
-        await api.delete(`/tamu/${id}`);
-        toast('Tamu dihapus.');
-        muatTamu($('#cari-tamu').value.trim());
-    } catch (error) {
-        toast(error.message, 'error'); // 409 bila masih punya reservasi aktif
-    }
-}
-
-/* ---------- Tipe kamar & fasilitas ---------- */
-
-function renderPilihFasilitas() {
-    $('#pilih-fasilitas').innerHTML = state.fasilitas
-        .map(
-            (nama) =>
-                `<button type="button" class="chip-pilih" data-fasilitas="${escapeHtml(nama)}" aria-pressed="${state.fasilitasDipilih.has(nama)}">${escapeHtml(nama)}</button>`,
-        )
-        .join('');
-}
-
-async function muatTipe() {
-    try {
-        const { data } = await api.get('/tipe-kamar');
-        $('#daftar-tipe').innerHTML = data.length
-            ? data
-                  .map(
-                      (t) =>
-                          `<li class="flex items-center justify-between py-2"><span class="font-medium">${escapeHtml(t.nama_tipe)} <span class="font-normal text-redam">· maks. ${t.kapasitas} tamu</span></span><span>${formatRupiah(t.harga_per_malam)}</span></li>`,
-                  )
-                  .join('')
-            : '<li class="py-2 text-redam">Belum ada tipe kamar.</li>';
-    } catch (error) {
-        toast(error.message, 'error');
-    }
-}
-
-function formatHargaSaatMengetik(event) {
-    const angka = event.target.value.replace(/\D/g, '');
-    event.target.value = angka ? formatRupiah(Number(angka)) : '';
-}
-
-function tolakBelumAda(event) {
+async function kirimBatal(event) {
     event.preventDefault();
     const form = event.currentTarget;
     bersihkanError(form);
 
-    if (form.id === 'form-fasilitas') {
-        const nama = form.nama.value.trim();
-
-        if (!nama) {
-            return tampilkanError(form, { status: 422, errors: { nama: ['Nama fasilitas wajib diisi.'] }, message: '' });
-        }
-
-        // Fasilitas hanya ditambahkan ke pilihan di halaman ini (belum tersimpan ke server).
-        if (!state.fasilitas.includes(nama)) {
-            state.fasilitas.push(nama);
-            renderPilihFasilitas();
-        }
-
-        form.reset();
+    try {
+        const { data } = await denganLoading($('button[type="submit"]', form), () =>
+            api.post(`/saya/reservasi/${state.terpilih.id}/pembatalan`, Object.fromEntries(new FormData(form))),
+        );
+        simpan(data);
+        $('#modal-batal').close();
+        toast('Pengajuan pembatalan terkirim.');
+    } catch (error) {
+        tampilkanError(form, error);
     }
-
-    toast(PESAN_BELUM_ADA, 'error');
 }
 
-function gantiSeksi(nama) {
-    $$('[data-seksi-tombol]').forEach((tombol) => tombol.setAttribute('aria-pressed', String(tombol.dataset.seksiTombol === nama)));
-    $$('[data-seksi]').forEach((seksi) => seksi.classList.toggle('max-lg:hidden', seksi.dataset.seksi !== nama));
-}
+export async function initTamuDashboard() {
+    $('#form-bayar').addEventListener('submit', kirimBayar);
+    $('#form-batal').addEventListener('submit', kirimBatal);
 
-/* ---------- Init ---------- */
+    $$('[data-tutup]').forEach((el) => el.addEventListener('click', () => el.closest('dialog').close()));
 
-export function initTamu() {
-    $('#form-tamu').addEventListener('submit', simpanTamu);
-    $('#tombol-batal-tamu').addEventListener('click', resetFormTamu);
-    $('#t-nik').addEventListener('input', (event) => {
-        event.target.value = event.target.value.replace(/\D/g, '').slice(0, 16);
-        perbaruiHitungNik();
-    });
+    $('#by-bukti').addEventListener('change', (event) => {
+        const berkas = event.target.files[0];
+        const gambar = $('#bayar-preview');
+        gambar.hidden = !(berkas && berkas.type.startsWith('image/'));
 
-    let jeda;
-    $('#cari-tamu').addEventListener('input', (event) => {
-        clearTimeout(jeda);
-        jeda = setTimeout(() => muatTamu(event.target.value.trim()), 300);
-    });
-
-    $('#tabel-tamu').addEventListener('click', (event) => {
-        const ubah = event.target.closest('[data-ubah]');
-        const hapus = event.target.closest('[data-hapus]');
-
-        if (ubah) {
-            mulaiUbah(JSON.parse(ubah.dataset.ubah));
-        } else if (hapus) {
-            hapusTamu(hapus.dataset.hapus);
+        if (!gambar.hidden) {
+            gambar.src = URL.createObjectURL(berkas);
         }
     });
 
-    $('#pilih-fasilitas').addEventListener('click', (event) => {
-        const chip = event.target.closest('[data-fasilitas]');
-
-        if (!chip) {
-            return;
-        }
-
-        const nama = chip.dataset.fasilitas;
-        state.fasilitasDipilih.has(nama) ? state.fasilitasDipilih.delete(nama) : state.fasilitasDipilih.add(nama);
-        renderPilihFasilitas();
-    });
-
-    $('#tp-harga').addEventListener('input', formatHargaSaatMengetik);
-    $('#form-tipe').addEventListener('submit', tolakBelumAda);
-    $('#form-fasilitas').addEventListener('submit', tolakBelumAda);
-    $('#tab-master').addEventListener('click', (event) => {
-        const tombol = event.target.closest('[data-seksi-tombol]');
+    $('#filter-riwayat').addEventListener('click', (event) => {
+        const tombol = event.target.closest('[data-filter]');
 
         if (tombol) {
-            gantiSeksi(tombol.dataset.seksiTombol);
+            state.filter = tombol.dataset.filter;
+            render();
         }
     });
 
-    renderPilihFasilitas();
-    perbaruiHitungNik();
-    muatTamu();
-    muatTipe();
-    gantiSeksi('tamu');
+    $('#riwayat-daftar').addEventListener('click', (event) => {
+        const tombol = event.target.closest('[data-aksi]');
+        const reservasi = state.daftar.find((r) => r.id === Number(tombol?.dataset.id));
+
+        if (!reservasi) return;
+
+        tombol.dataset.aksi === 'bayar' ? bukaBayar(reservasi) : bukaBatal(reservasi);
+    });
+
+    try {
+        state.daftar = (await api.get('/saya/reservasi')).data;
+        render();
+    } catch (error) {
+        $('#riwayat-daftar').innerHTML = `<p class="kartu p-5 text-xs text-red-600">Gagal memuat riwayat: ${escapeHtml(error.message)}</p>`;
+    }
 }
