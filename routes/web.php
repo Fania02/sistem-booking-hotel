@@ -1,14 +1,10 @@
 <?php
 
-use App\Enums\Peran;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', function () {
+    return view('welcome');
 Route::view('/', 'landing')->name('beranda');
-
-Route::middleware('guest')->group(function (): void {
-    Route::view('masuk', 'auth.masuk')->name('login');
-    Route::view('daftar', 'auth.daftar')->name('daftar');
-});
 
 /*
 | Halaman tamu: hanya untuk tamu yang sudah login.
@@ -24,10 +20,10 @@ Route::prefix('tamu')->name('tamu.')->middleware(['auth'])->group(function (): v
 Route::prefix('admin')->name('admin.')
     ->middleware(['auth', 'peran:'.implode(',', array_map(fn (Peran $p) => $p->value, Peran::staf()))])
     ->group(function (): void {
-        Route::view('dashboard', 'admin.dashboard')->name('dashboard');
-        Route::view('reservasi', 'admin.reservasi')->name('reservasi');
-        Route::view('tamu', 'admin.tamu')->name('tamu');
+        Route::view('dashboard',  'admin.dashboard')->name('dashboard');
+        Route::view('reservasi',  'admin.reservasi')->name('reservasi');
+        Route::view('tamu',       'admin.tamu')->name('tamu');
         Route::view('pembayaran', 'admin.pembayaran')->name('pembayaran');
         Route::view('pembatalan', 'admin.pembatalan')->name('pembatalan');
-        Route::view('pengguna', 'admin.pengguna')->name('pengguna');
+        Route::view('pengguna',   'admin.pengguna')->name('pengguna');
     });
