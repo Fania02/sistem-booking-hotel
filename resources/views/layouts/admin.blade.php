@@ -15,6 +15,11 @@
             ['Pembatalan',             url('/admin/pembatalan'),                'pembatalan'],
             ['Pengguna',               url('/admin/pengguna'),                  'pengguna'],
         ];
+
+        // Kelola akun hanya untuk admin
+        if (auth()->user()?->role !== \App\Enums\Peran::Admin) {
+            $menu = array_values(array_filter($menu, fn ($m) => $m[2] !== 'pengguna'));
+        }
     @endphp
 
     {{-- Sidebar (desktop) --}}
@@ -27,10 +32,15 @@
             @foreach ($menu as [$nama, $tautan, $kunci])
                 @if ($tautan)
                     <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
-                       class="rounded-lg px-3 py-2.5 transition {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">{{ $nama }}</a>
+                       class="rounded-lg px-3 py-2.5 transition hover:translate-x-1 {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">{{ $nama }}</a>
                 @endif
             @endforeach
         </nav>
+        <div class="mt-auto border-t border-white/10 px-2 pt-4">
+            <p class="truncate text-xs font-semibold">{{ auth()->user()->name }}</p>
+            <p class="text-[10px] capitalize text-white/50">{{ auth()->user()->role->value }}</p>
+            <button type="button" data-keluar class="mt-3 w-full rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white/80 transition hover:bg-white/10 hover:text-white">Keluar</button>
+        </div>
     </aside>
 
     {{-- Top bar (mobile) --}}
@@ -52,6 +62,7 @@
                     <span class="block px-3 py-2.5 text-sm text-white/35">{{ $nama }}</span>
                 @endif
             @endforeach
+            <button type="button" data-keluar class="mt-4 w-full rounded-lg border border-white/20 px-3 py-2.5 text-sm text-white/80">Keluar</button>
         </div>
     </div>
 
