@@ -66,3 +66,4 @@ class PembayaranController extends Controller
 
         return new PembayaranResource($pembayaran->load(['reservasi', 'verifikator']));
     }
+}
