@@ -103,4 +103,3 @@ class PenggunaController extends Controller
             throw ValidationException::withMessages(['peran' => 'Minimal harus ada satu akun admin.']);
         }
     }
-}
