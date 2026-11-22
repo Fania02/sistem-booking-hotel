@@ -23,7 +23,7 @@ class ReservasiStatusController extends Controller
         );
 
         return new ReservasiResource(
-            $reservasi->load(['tamu', 'detail.kamar.tipeKamar', 'checkinCheckout', 'pembatalan']),
+            $reservasi->load(['tamu', 'detail.kamar.tipeKamar', 'checkinCheckout', 'pembatalan', 'pembayaran']),
         );
     }
 }

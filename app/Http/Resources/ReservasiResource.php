@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\StatusVerifikasi;
 use App\Models\Reservasi;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -24,6 +25,9 @@ class ReservasiResource extends JsonResource
             'tgl_checkout' => $this->tgl_checkout->toDateString(),
             'jumlah_malam' => $this->jumlahMalam(),
             'total_harga' => (float) $this->total_harga,
+            'total_dibayar' => $this->whenLoaded('pembayaran', fn () => round((float) $this->pembayaran->where('status', StatusVerifikasi::Diterima)->sum('jumlah_bayar'), 2)),
+            'sisa_tagihan' => $this->whenLoaded('pembayaran', fn () => max(0.0, round((float) $this->total_harga - (float) $this->pembayaran->where('status', StatusVerifikasi::Diterima)->sum('jumlah_bayar'), 2))),
+            'pembayaran' => PembayaranResource::collection($this->whenLoaded('pembayaran')),
             'tamu' => new TamuResource($this->whenLoaded('tamu')),
             'kamar' => DetailReservasiResource::collection($this->whenLoaded('detail')),
             'checkin_checkout' => $this->whenLoaded('checkinCheckout', fn () => $this->checkinCheckout === null ? null : [
@@ -33,6 +37,7 @@ class ReservasiResource extends JsonResource
             ]),
             'pembatalan' => $this->whenLoaded('pembatalan', fn () => $this->pembatalan->last() === null ? null : [
                 'alasan' => $this->pembatalan->last()->alasan,
+                'status' => $this->pembatalan->last()->status->opsi(),
                 'tgl_diproses' => $this->pembatalan->last()->tgl_diproses?->toIso8601String(),
             ]),
             'dibuat_pada' => $this->created_at?->toIso8601String(),

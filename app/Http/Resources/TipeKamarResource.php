@@ -20,6 +20,7 @@ class TipeKamarResource extends JsonResource
             'harga_per_malam' => (float) $this->harga_per_malam,
             'kapasitas' => $this->kapasitas,
             'deskripsi' => $this->deskripsi,
+            'fasilitas' => FasilitasResource::collection($this->whenLoaded('fasilitas')),
         ];
     }
 }

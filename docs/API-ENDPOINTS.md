@@ -43,10 +43,53 @@ Format sukses: `{ "data": ... }`; daftar berpaginasi menambah `links` dan `meta`
 Error validasi: HTTP 422 `{ "message": "...", "errors": { "field": ["..."] } }`.
 Tidak ditemukan: 404. Tidak boleh dihapus karena masih dipakai: 409 `{ "message": "..." }`.
 
-## Tipe kamar (untuk dropdown)
+## Tipe kamar & fasilitas
 | Method | URL | Keterangan |
 |---|---|---|
-| GET | /tipe-kamar | id, nama_tipe, harga_per_malam, kapasitas, deskripsi |
+| GET | /tipe-kamar | Publik. Beserta daftar `fasilitas` |
+| GET | /tipe-kamar/{id} | Publik |
+| POST | /tipe-kamar | (admin) `nama_tipe` (unik, maks 50), `harga_per_malam` (>= 0), `kapasitas` (1-20), `deskripsi`, `fasilitas_ids` (array id) |
+| PUT/PATCH | /tipe-kamar/{id} | (admin) Field sama. `fasilitas_ids` menggantikan seluruh fasilitas lama; jika tidak dikirim, fasilitas tidak berubah |
+| DELETE | /tipe-kamar/{id} | (admin) 409 bila masih dipakai kamar |
+| GET | /fasilitas | Publik. Ada `jumlah_tipe_kamar` |
+| POST | /fasilitas | (admin) `nama` (unik, maks 50) |
+| PUT/PATCH | /fasilitas/{id} | (admin) |
+| DELETE | /fasilitas/{id} | (admin) Otomatis dilepas dari semua tipe kamar |
+
+## Akun petugas (admin saja)
+| Method | URL | Keterangan |
+|---|---|---|
+| GET | /pengguna | Hanya admin & resepsionis. Filter: `search` |
+| GET | /pengguna/{id} | Akun tamu → 404 |
+| POST | /pengguna | `name`, `email` (unik), `password` (min 8), `peran` (`admin`/`resepsionis`) |
+| PUT/PATCH | /pengguna/{id} | `password` opsional (kosong = tidak diubah) |
+| DELETE | /pengguna/{id} | Tidak bisa menghapus akun sendiri (409) |
+
+Aturan: tidak bisa menurunkan peran akun sendiri, dan minimal satu admin harus tersisa (422).
+
+## Pembayaran
+| Method | URL | Siapa | Keterangan |
+|---|---|---|---|
+| GET | /pembayaran | petugas | Filter: `status` (menunggu_verifikasi/diterima/ditolak), `reservasi_id`, `per_page` |
+| GET | /reservasi/{id}/pembayaran | petugas | Riwayat pembayaran satu reservasi |
+| POST | /reservasi/{id}/pembayaran | petugas | `jumlah_bayar`, `metode` (tunai/transfer/qris), `tgl_bayar`, `catatan`, `bukti_bayar` (opsional). Langsung berstatus `diterima` |
+| POST | /pembayaran/{id}/verifikasi | petugas | `status` = `diterima`/`ditolak`; `catatan` wajib bila ditolak |
+| POST | /saya/reservasi/{id}/pembayaran | tamu | **multipart/form-data**: `jumlah_bayar`, `metode` (transfer/qris), `bukti_bayar` (gambar jpg/png/webp, maks 2 MB, wajib). Status `menunggu_verifikasi` |
+
+`status_pembayaran` reservasi (belum_bayar/dp/lunas) dihitung otomatis dari pembayaran yang **diterima**. Jumlah tidak boleh melebihi sisa tagihan, dan reservasi batal/selesai tidak menerima pembayaran (422). `GET /reservasi/{id}` menyertakan `pembayaran`, `total_dibayar`, `sisa_tagihan`. URL bukti ada di `bukti_bayar_url` (jalankan `php artisan storage:link` sekali).
+
+## Pembatalan
+| Method | URL | Siapa | Keterangan |
+|---|---|---|---|
+| GET | /saya/reservasi | tamu | Riwayat reservasi milik sendiri (beserta pembayaran & pembatalan) |
+| POST | /saya/reservasi/{id}/pembatalan | tamu | `alasan` (min 5). Hanya status menunggu/dikonfirmasi; satu pengajuan aktif per reservasi |
+| GET | /pembatalan | petugas | Filter: `status` (diajukan/disetujui/ditolak) |
+| POST | /pembatalan/{id}/proses | petugas | `status` = `disetujui` (reservasi jadi batal) / `ditolak` (reservasi tetap, `catatan_petugas` wajib) |
+
+Reservasi milik tamu lain dijawab 404. Jika petugas membatalkan lewat `/reservasi/{id}/status` saat ada pengajuan, pengajuan itu otomatis disetujui (tidak ada catatan ganda).
+
+## Dashboard (petugas)
+`GET /dashboard` → `reservasi.per_status`, `checkin_hari_ini`, `checkout_hari_ini`, `kamar` (total/perbaikan/terisi), `perlu_tindakan` (pembayaran menunggu verifikasi, pembatalan diajukan), `reservasi_terbaru`. Objek `pendapatan` (hari_ini, bulan_ini) hanya ada untuk admin.
 
 ## Kamar
 | Method | URL | Keterangan |

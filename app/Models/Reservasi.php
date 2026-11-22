@@ -140,4 +140,15 @@ class Reservasi extends Model
     {
         $this->update(['total_harga' => $this->detail()->sum('subtotal')]);
     }
+
+    /**
+     * Reservasi milik tamu yang akunnya terhubung ke user tertentu.
+     *
+     * @param  Builder<Reservasi>  $query
+     */
+    #[Scope]
+    protected function milikUser(Builder $query, int $userId): void
+    {
+        $query->whereHas('tamu', fn (Builder $q) => $q->where('user_id', $userId));
+    }
 }

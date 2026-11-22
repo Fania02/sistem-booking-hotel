@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\MetodePembayaran;
+use App\Enums\StatusVerifikasi;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +30,8 @@ class Pembayaran extends Model
         return [
             'jumlah_bayar' => 'decimal:2',
             'tgl_bayar' => 'datetime',
+            'metode' => MetodePembayaran::class,
+            'status' => StatusVerifikasi::class,
         ];
     }
 
