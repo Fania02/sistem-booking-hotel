@@ -5,10 +5,26 @@ import { $, $$, bersihkanError, denganLoading, tampilkanError, toast } from '../
 const FASILITAS_UMUM = ['Wi-Fi', 'AC', 'TV'];
 const JUMLAH_AWAL = 3;
 
+// Foto tipe kamar per nama (Unsplash)
+const FOTO_TIPE = {
+    standar: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
+    deluxe:  'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=600&q=80',
+    suite:   'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80',
+    default: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80',
+};
+
+function getFotoTipe(namaTipe = '') {
+    const kunci = namaTipe.toLowerCase();
+    for (const [k, v] of Object.entries(FOTO_TIPE)) {
+        if (kunci.includes(k)) return v;
+    }
+    return FOTO_TIPE.default;
+}
+
 const state = {
     tipe: [],
     tampilSemua: false,
-    pesanan: null, // { tipe, kamarId, tgl_checkin, tgl_checkout }
+    pesanan: null,
 };
 
 function kartuTipe(tipe, { tombol = 'Pesan', info = '' } = {}) {
@@ -16,16 +32,23 @@ function kartuTipe(tipe, { tombol = 'Pesan', info = '' } = {}) {
         .map((teks) => `<span class="chip">${escapeHtml(teks)}</span>`)
         .join('');
 
+    const foto = getFotoTipe(tipe.nama_tipe);
+
     return `
-        <article class="kartu overflow-hidden">
-            <div class="foto-placeholder h-36">Foto tipe kamar</div>
+        <article class="kartu kartu-gambar overflow-hidden hover-kartu">
+            <div class="relative h-44">
+                <img src="${foto}" alt="${escapeHtml(tipe.nama_tipe)}" class="w-full h-full object-cover" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-tinta/40 to-transparent"></div>
+                <div class="absolute bottom-3 left-3">
+                    <span class="rounded-full bg-emas px-2.5 py-1 text-[10px] font-semibold text-white">${escapeHtml(tipe.nama_tipe)}</span>
+                </div>
+            </div>
             <div class="p-4">
-                <h3 class="judul text-base">${escapeHtml(tipe.nama_tipe)}</h3>
-                <p class="mt-1 line-clamp-2 text-[11px] text-redam">${escapeHtml(info || tipe.deskripsi || '')}</p>
+                <p class="mt-1 line-clamp-2 text-[11px] text-redam">${escapeHtml(info || tipe.deskripsi || 'Nikmati kenyamanan kamar premium kami.')}</p>
                 <div class="mt-3 flex flex-wrap gap-1.5">${chips}</div>
                 <div class="mt-4 flex items-center justify-between">
                     <p class="text-sm font-semibold">${formatRupiah(tipe.harga_per_malam)} <span class="text-[10px] font-normal text-redam">/malam</span></p>
-                    <button type="button" class="btn-gelap !px-4 !py-2" data-pesan="${tipe.id}">${tombol}</button>
+                    <button type="button" class="btn-emas !px-4 !py-2 hover-btn" data-pesan="${tipe.id}">${tombol}</button>
                 </div>
             </div>
         </article>`;
@@ -56,7 +79,6 @@ async function muatTipe() {
 
 function nilaiPencarian() {
     const form = $('#form-cari');
-
     return {
         tgl_checkin: form.tgl_checkin.value,
         tgl_checkout: form.tgl_checkout.value,
@@ -96,7 +118,6 @@ async function cariKamar(event) {
             api.get('/kamar/tersedia', { tgl_checkin, tgl_checkout, tipe_kamar_id }),
         );
 
-        // Kelompokkan kamar kosong per tipe, lalu saring yang kapasitasnya cukup.
         const perTipe = new Map();
         kamar.forEach((k) => perTipe.set(k.tipe_kamar_id, [...(perTipe.get(k.tipe_kamar_id) ?? []), k]));
 
@@ -205,6 +226,119 @@ async function kirimPesanan(event) {
     }
 }
 
+/* ---------- Hero Slider ---------- */
+
+function initHeroSlider() {
+    const slider = document.getElementById('hero-slider');
+    if (!slider) return;
+
+    const slides = slider.querySelectorAll('.hero-slide');
+    const dotsContainer = document.getElementById('slider-dots');
+    if (!slides.length || !dotsContainer) return;
+
+    let indeksSaatIni = 0;
+    let intervalId;
+
+    // Buat dots
+    slides.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = `slider-dot${i === 0 ? ' aktif' : ''}`;
+        dot.setAttribute('aria-label', `Slide ${i + 1}`);
+        dot.addEventListener('click', () => keSlide(i));
+        dotsContainer.appendChild(dot);
+    });
+
+    function keSlide(indeks) {
+        slides[indeksSaatIni].classList.remove('aktif');
+        dotsContainer.children[indeksSaatIni].classList.remove('aktif');
+
+        indeksSaatIni = (indeks + slides.length) % slides.length;
+
+        slides[indeksSaatIni].classList.add('aktif');
+        dotsContainer.children[indeksSaatIni].classList.add('aktif');
+    }
+
+    function berikutnya() {
+        keSlide(indeksSaatIni + 1);
+    }
+
+    // Autoplay setiap 4 detik
+    intervalId = setInterval(berikutnya, 4000);
+
+    // Pause saat hover
+    slider.addEventListener('mouseenter', () => clearInterval(intervalId));
+    slider.addEventListener('mouseleave', () => { intervalId = setInterval(berikutnya, 4000); });
+
+    // Set ulang posisi
+    slides.forEach((slide, i) => {
+        if (i === 0) {
+            slide.style.cssText = 'position:relative; opacity:1; transition: opacity 1s ease-in-out; background-size:cover; background-position:center; min-height:320px;';
+        } else {
+            slide.style.cssText = 'position:absolute; inset:0; opacity:0; transition: opacity 1s ease-in-out; background-size:cover; background-position:center;';
+        }
+    });
+}
+
+/* ---------- Cursor Glow ---------- */
+
+function initCursorGlow() {
+    const glow = document.createElement('div');
+    glow.className = 'cursor-glow';
+    document.body.appendChild(glow);
+
+    document.addEventListener('mousemove', (e) => {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+    });
+}
+
+/* ---------- Scroll Reveal ---------- */
+
+function initScrollReveal() {
+    const elemen = document.querySelectorAll('.anim-fade');
+    if (!elemen.length) return;
+
+    const obs = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('anim-visible');
+                obs.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.12 });
+
+    elemen.forEach((el) => obs.observe(el));
+
+    // Stagger grup
+    const stagger = document.querySelectorAll('.stagger');
+    const obsStagger = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('anim-visible');
+                obsStagger.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+
+    stagger.forEach((el) => obsStagger.observe(el));
+}
+
+/* ---------- Hover parallax pada section ------ */
+
+function initHoverParallax() {
+    document.querySelectorAll('.kartu-shine, .hover-kartu').forEach((kartu) => {
+        kartu.addEventListener('mousemove', (e) => {
+            const rect = kartu.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top)  / rect.height - 0.5;
+            kartu.style.transform = `perspective(600px) rotateY(${x * 4}deg) rotateX(${-y * 4}deg) translateY(-4px)`;
+        });
+        kartu.addEventListener('mouseleave', () => {
+            kartu.style.transform = '';
+        });
+    });
+}
+
 /* ---------- Init ---------- */
 
 export function initLanding() {
@@ -231,7 +365,6 @@ export function initLanding() {
 
     document.addEventListener('click', (event) => {
         const tombolPesan = event.target.closest('[data-pesan]');
-
         if (tombolPesan) {
             mulaiPesan(tombolPesan.dataset.pesan);
         }
@@ -247,5 +380,13 @@ export function initLanding() {
         tombolMenu.setAttribute('aria-expanded', String(!menu.hidden));
     });
 
-    muatTipe();
+    // Inisialisasi semua animasi dan efek
+    initHeroSlider();
+    initCursorGlow();
+    initScrollReveal();
+
+    // Jalankan parallax setelah tipe kamar dimuat
+    muatTipe().then(() => {
+        setTimeout(initHoverParallax, 300);
+    });
 }
