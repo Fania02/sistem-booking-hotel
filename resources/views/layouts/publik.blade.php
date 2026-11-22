@@ -7,24 +7,27 @@
 <body data-page="@yield('page')">
     <header class="sticky top-0 z-30 bg-krem/90 backdrop-blur">
         <nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-            <a href="{{ url('/') }}" class="judul text-lg">Royal Hotel</a>
+            <a href="{{ url('/') }}" class="judul text-lg transition hover:text-emas-tua">Royal Hotel</a>
 
             <ul class="hidden items-center gap-7 text-xs font-medium md:flex">
-                <li><a href="#beranda" class="border-b border-emas pb-1">Beranda</a></li>
-                <li><a href="#tipe-kamar" class="pb-1 text-tinta/70 hover:text-tinta">Tipe Kamar</a></li>
-                <li><a href="#fasilitas" class="pb-1 text-tinta/70 hover:text-tinta">Fasilitas</a></li>
-                <li><a href="#cara-pesan" class="pb-1 text-tinta/70 hover:text-tinta">Cara Pesan</a></li>
-                <li><a href="#kontak" class="pb-1 text-tinta/70 hover:text-tinta">Kontak</a></li>
+                <li><a href="#beranda" class="nav-link aktif pb-1">Beranda</a></li>
+                <li><a href="#tipe-kamar" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Tipe Kamar</a></li>
+                <li><a href="#fasilitas" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Fasilitas</a></li>
+                <li><a href="#cara-pesan" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Cara Pesan</a></li>
+                <li><a href="#kontak" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Kontak</a></li>
             </ul>
 
             <div class="hidden items-center gap-2 md:flex">
                 @auth
                     @if (auth()->user()->adalahStaf())
-                        <a href="{{ url('/admin/reservasi') }}" class="btn-garis">Panel Admin</a>
+                        <a href="{{ url('/admin/dashboard') }}" class="btn-garis">Panel Admin</a>
+                    @else
+                        <a href="{{ url('/tamu/dashboard') }}" class="btn-garis">Riwayat Saya</a>
                     @endif
                     <button type="button" data-keluar class="btn-garis">Keluar</button>
                 @else
                     <a href="{{ route('login') }}" class="btn-garis">Masuk</a>
+                    <a href="{{ route('daftar') }}" class="btn-garis">Daftar</a>
                 @endauth
                 <a href="#form-cari" class="btn-gelap">Pesan Sekarang</a>
             </div>
@@ -44,6 +47,7 @@
                 <button type="button" data-keluar class="btn-garis mt-2 w-full">Keluar</button>
             @else
                 <a href="{{ route('login') }}" class="btn-garis mt-2 w-full">Masuk</a>
+                <a href="{{ route('daftar') }}" class="btn-gelap mt-2 w-full">Daftar</a>
             @endauth
         </div>
     </header>

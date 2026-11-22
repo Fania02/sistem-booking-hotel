@@ -3,21 +3,11 @@ import { initGerak } from './lib/gerak';
 import { initLanding } from './pages/landing';
 import { initReservasi } from './pages/reservasi';
 import { initTamu } from './pages/tamu';
-import { initTamuDashboard } from './pages/tamu-dashboard';
-import { initAdminDashboard } from './pages/admin-dashboard';
-import { initAdminPembatalan } from './pages/admin-pembatalan';
-import { initAdminPembayaran } from './pages/admin-pembayaran';
-import { initAdminPengguna } from './pages/admin-pengguna';
 
 const halaman = {
     landing: initLanding,
     reservasi: initReservasi,
     tamu: initTamu,
-    'tamu-dashboard': initTamuDashboard,
-    'admin-dashboard': initAdminDashboard,
-    'admin-pembayaran': initAdminPembayaran,
-    'admin-pembatalan': initAdminPembatalan,
-    'admin-pengguna': initAdminPengguna,
     masuk: initMasuk,
     daftar: initDaftar,
 };
