@@ -17,8 +17,12 @@
         <button type="button" class="chip-pilih !px-4 !py-1.5" data-filter-batal="disetujui" aria-pressed="false">Disetujui</button>
         <button type="button" class="chip-pilih !px-4 !py-1.5" data-filter-batal="ditolak" aria-pressed="false">Ditolak</button>
     </div>
-
-
+    
+    <div id="daftar-pembatalan" class="space-y-3"></div>
+    <p id="kosong-pembatalan" class="kartu p-6 text-center text-xs text-redam" hidden>Tidak ada permintaan pembatalan.</p>
+    <div id="loading-pembatalan" class="space-y-3">
+        @foreach(range(1,3) as $i)
+        <div class="kartu h-24 animate-pulse"></div>
         @endforeach
     </div>
 </div>
