@@ -11,9 +11,9 @@ Tanpa header itu, request POST/PUT/DELETE dibalas **419**. Tanpa login dibalas *
 | Peran | Akses |
 |---|---|
 | Publik (tanpa login) | `GET /tipe-kamar`, `GET /kamar/tersedia`, `POST /booking`, `GET /booking/{kode}?nik=`, login, registrasi |
-| Tamu (login) | `/auth/me`, `/auth/logout` (riwayat dan pembatalan tamu menyusul di tahap 2) |
-| Resepsionis | Semua akses tamu + lihat kamar, kelola tamu dan reservasi, ubah status (check-in/out, batal) |
-| Admin | Semua akses resepsionis + tambah/ubah/hapus kamar, hapus tamu, hapus reservasi |
+| Tamu (login) | `/auth/me`, `/auth/logout`, `/saya/*`: riwayat reservasi sendiri, bayar dengan bukti transfer/QRIS, ajukan pembatalan |
+| Resepsionis | `/auth/me`, `/auth/logout` + lihat kamar, kelola tamu dan reservasi, ubah status (check-in/out, batal), catat dan verifikasi pembayaran, proses pembatalan, dashboard (tanpa pendapatan) |
+| Admin | Semua akses resepsionis + tambah/ubah/hapus kamar, kelola tipe kamar, fasilitas, dan akun petugas (`/pengguna`), hapus tamu dan reservasi, pendapatan di dashboard |
 
 Akun contoh dari seeder (password semuanya `password`): `admin@royalhotel.test`, `resepsionis@royalhotel.test`, `budi@royalhotel.test` (tamu).
 
