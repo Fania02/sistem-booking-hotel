@@ -301,6 +301,84 @@ function initSlideshow() {
     jadwal();
 }
 
+function initGaleriFasilitas() {
+    const wadah = $('#galeri-fasilitas');
+    const slides = $$('.galeri-slide');
+    const item = $$('[data-fas]');
+    const progres = $('.galeri-progress');
+    const DURASI = 4500;
+
+    if (!wadah || slides.length < 2) {
+        return;
+    }
+
+    wadah.style.setProperty('--durasi', `${DURASI}ms`);
+
+    let aktif = 0;
+    let timer;
+    let jeda = false;
+
+    const mulaiProgres = () => {
+        progres?.classList.remove('jalan');
+        void progres?.offsetWidth;
+        progres?.classList.add('jalan');
+    };
+
+    const tampil = (nomor) => {
+        slides[aktif].classList.remove('is-aktif');
+        item[aktif]?.setAttribute('aria-pressed', 'false');
+        aktif = (nomor + slides.length) % slides.length;
+        slides[aktif].classList.add('is-aktif');
+        item[aktif]?.setAttribute('aria-pressed', 'true');
+        mulaiProgres();
+    };
+
+    const jadwal = () => {
+        clearTimeout(timer);
+
+        if (!jeda) {
+            mulaiProgres();
+            timer = setTimeout(() => {
+                tampil(aktif + 1);
+                jadwal();
+            }, DURASI);
+        }
+    };
+
+    const pindah = (nomor) => {
+        tampil(nomor);
+        jadwal();
+    };
+
+    item.forEach((el, i) => {
+        el.addEventListener('click', () => pindah(i));
+        el.addEventListener('mouseenter', () => pindah(i)); // sorot di daftar = langsung tampil
+    });
+    $('#galeri-prev')?.addEventListener('click', () => pindah(aktif - 1));
+    $('#galeri-next')?.addEventListener('click', () => pindah(aktif + 1));
+
+    wadah.addEventListener('mouseenter', () => {
+        jeda = true;
+        clearTimeout(timer);
+        progres?.classList.remove('jalan');
+    });
+    wadah.addEventListener('mouseleave', () => {
+        jeda = false;
+        jadwal();
+    });
+
+    let awalX = null;
+    wadah.addEventListener('touchstart', (e) => (awalX = e.touches[0].clientX), { passive: true });
+    wadah.addEventListener('touchend', (e) => {
+        if (awalX === null) return;
+        const selisih = e.changedTouches[0].clientX - awalX;
+        awalX = null;
+        if (Math.abs(selisih) > 40) pindah(aktif + (selisih < 0 ? 1 : -1));
+    });
+
+    jadwal();
+}
+
 export function initLanding() {
     muatTipe();
 
@@ -308,6 +386,12 @@ export function initLanding() {
         initSlideshow();
     } catch (error) {
         console.error('[Royal Hotel] Slideshow gagal:', error);
+    }
+
+    try {
+        initGaleriFasilitas();
+    } catch (error) {
+        console.error('[Royal Hotel] Galeri fasilitas gagal:', error);
     }
 
     const form = $('#form-cari');

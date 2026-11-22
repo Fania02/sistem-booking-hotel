@@ -125,23 +125,50 @@
         </div>
     </section>
 
-    {{-- Fasilitas --}}
-    <section id="fasilitas" class="mt-20 grid scroll-mt-20 items-center gap-8 md:grid-cols-[1.1fr_1fr]">
-        <div class="group-foto relative aspect-[4/3] overflow-hidden rounded-3xl" data-reveal>
-            <img src="{{ config('foto.fasilitas.url') }}" data-cadangan="{{ config('foto.fasilitas.cadangan') }}" alt="Fasilitas Royal Hotel" class="zoom-foto h-full w-full object-cover" loading="lazy">
-        </div>
+    {{-- Fasilitas: galeri foto semua fasilitas --}}
+    <section id="fasilitas" class="mt-20 scroll-mt-20">
         <div data-reveal>
             <p class="eyebrow">Fasilitas</p>
             <h2 class="judul mt-1 text-2xl md:text-3xl">Lebih dari sekadar kamar</h2>
-            <div class="mt-4 flex flex-wrap gap-2">
-                @foreach (['Wi-Fi cepat', 'Parkir luas', 'Spa', 'Kolam renang', 'Resto', 'Ruang pertemuan'] as $fasilitas)
-                    <span class="chip">{{ $fasilitas }}</span>
+            <p class="mt-2 max-w-xl text-xs leading-relaxed text-redam">Semua fasilitas tersedia untuk seluruh tamu. Pilih salah satu untuk melihat fotonya, atau biarkan galeri berganti sendiri.</p>
+        </div>
+
+        <div id="galeri-fasilitas" class="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]" data-reveal>
+            {{-- Panggung foto --}}
+            <div class="relative aspect-[4/3] overflow-hidden rounded-3xl bg-kopi md:aspect-[16/10]">
+                @foreach (config('foto.fasilitas') as $i => $f)
+                    <figure class="galeri-slide absolute inset-0 {{ $i === 0 ? 'is-aktif' : '' }}">
+                        <img src="{{ $f['url'] }}" data-cadangan="{{ $f['cadangan'] }}" alt="{{ $f['nama'] }}" class="h-full w-full object-cover" loading="{{ $i === 0 ? 'eager' : 'lazy' }}" draggable="false">
+                        <figcaption class="galeri-teks absolute inset-x-0 bottom-0 bg-gradient-to-t from-tinta/85 via-tinta/40 to-transparent px-6 pb-8 pt-20 text-white">
+                            <p class="judul text-2xl">{{ $f['nama'] }}</p>
+                            <p class="mt-1 max-w-md text-xs text-white/80">{{ $f['deskripsi'] }}</p>
+                        </figcaption>
+                    </figure>
+                @endforeach
+
+                <button type="button" id="galeri-prev" class="slide-panah absolute left-3 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-tinta backdrop-blur hover:bg-white" aria-label="Fasilitas sebelumnya">
+                    <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+                </button>
+                <button type="button" id="galeri-next" class="slide-panah absolute right-3 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-tinta backdrop-blur hover:bg-white" aria-label="Fasilitas berikutnya">
+                    <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>
+                </button>
+                <div class="absolute inset-x-0 top-0 z-10 h-0.5 bg-white/20"><div class="galeri-progress slide-progress h-full bg-emas"></div></div>
+            </div>
+
+            {{-- Daftar semua fasilitas --}}
+            <div class="grid grid-cols-2 gap-2.5 lg:grid-cols-1" role="tablist" aria-label="Daftar fasilitas">
+                @foreach (config('foto.fasilitas') as $i => $f)
+                    <button type="button" class="fas-item flex items-center gap-3 rounded-2xl border border-garis bg-white/70 p-2.5 text-left" data-fas="{{ $i }}" aria-pressed="{{ $i === 0 ? 'true' : 'false' }}" role="tab">
+                        <span class="relative size-12 shrink-0 overflow-hidden rounded-xl bg-kopi">
+                            <img src="{{ $f['url'] }}" data-cadangan="{{ $f['cadangan'] }}" alt="" class="h-full w-full object-cover" loading="lazy" draggable="false">
+                        </span>
+                        <span class="min-w-0">
+                            <span class="flex items-center gap-1.5 text-xs font-semibold">@include('partials.ikon', ['nama' => $f['ikon'], 'kelas' => 'size-3.5 text-emas-tua']){{ $f['nama'] }}</span>
+                            <span class="mt-0.5 hidden text-[10px] leading-snug text-redam lg:line-clamp-1 lg:block">{{ $f['deskripsi'] }}</span>
+                        </span>
+                    </button>
                 @endforeach
             </div>
-            <p class="mt-4 text-xs leading-relaxed text-redam">
-                Daftar fasilitas dikelola admin dan tersedia untuk semua tipe kamar. Tanyakan resepsionis untuk fasilitas tambahan.
-            </p>
-            <a href="#kontak" class="btn-gelap mt-5">Lihat Fasilitas</a>
         </div>
     </section>
 
@@ -164,8 +191,61 @@
         </div>
     </section>
 
+    {{-- Kontak --}}
+    @php
+        $k = config('kontak');
+        $q = urlencode($k['maps_query']);
+        $telTaut = 'tel:'.preg_replace('/[^\d+]/', '', $k['telepon']);
+        $waTaut = 'https://wa.me/'.$k['whatsapp'].'?text='.urlencode('Halo Royal Hotel, saya ingin bertanya tentang reservasi.');
+    @endphp
+    <section id="kontak" class="mt-20 scroll-mt-20">
+        <div data-reveal>
+            <p class="eyebrow">Kontak</p>
+            <h2 class="judul mt-1 text-2xl md:text-3xl">Hubungi &amp; kunjungi kami</h2>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+            <div class="grid content-start gap-3">
+                @foreach ([
+                    ['pin', 'Alamat', $k['alamat'], null],
+                    ['phone', 'Telepon', $k['telepon'], $telTaut],
+                    ['wa', 'WhatsApp', 'Chat dengan resepsionis', $waTaut],
+                    ['mail', 'Email', $k['email'], 'mailto:'.$k['email']],
+                    ['clock', 'Jam layanan', $k['jam'], null],
+                ] as [$ikon, $label, $isi, $taut])
+                    @php $tag = $taut ? 'a' : 'div'; @endphp
+                    <{{ $tag }} @if ($taut) href="{{ $taut }}" target="_blank" rel="noopener" @endif class="kartu flex items-center gap-4 p-4" data-reveal data-tilt>
+                        <span class="grid size-11 shrink-0 place-items-center rounded-full bg-pasir text-emas-tua">@include('partials.ikon', ['nama' => $ikon])</span>
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-semibold uppercase tracking-widest text-redam">{{ $label }}</span>
+                            <span class="block text-sm font-medium">{{ $isi }}</span>
+                        </span>
+                    </{{ $tag }}>
+                @endforeach
+
+                @if (array_filter($k['sosmed']))
+                    <div class="flex items-center gap-3 pt-1" data-reveal>
+                        <span class="text-[10px] font-semibold uppercase tracking-widest text-redam">Ikuti kami</span>
+                        @foreach ($k['sosmed'] as $nama => $taut)
+                            @if ($taut)
+                                <a href="{{ $taut }}" target="_blank" rel="noopener" aria-label="{{ ucfirst($nama) }}" class="grid size-10 place-items-center rounded-full border border-garis bg-white/70 text-tinta transition hover:-translate-y-0.5 hover:bg-tinta hover:text-white">
+                                    @include('partials.ikon', ['nama' => $nama])
+                                </a>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <div class="kartu group-foto relative min-h-72 overflow-hidden" data-reveal>
+                <iframe title="Lokasi Royal Hotel di Google Maps" src="https://www.google.com/maps?q={{ $q }}&amp;output=embed" class="absolute inset-0 h-full w-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+                <a href="https://www.google.com/maps/search/?api=1&amp;query={{ $q }}" target="_blank" rel="noopener" class="btn-gelap absolute bottom-3 left-3 !px-4 !py-2 shadow-lg">Buka di Google Maps ↗</a>
+            </div>
+        </div>
+    </section>
+
     {{-- CTA --}}
-    <section id="kontak" data-reveal class="mt-16 flex flex-col items-start justify-between gap-4 rounded-3xl bg-tinta px-7 py-8 text-white md:flex-row md:items-center md:px-10">
+    <section data-reveal class="mt-16 flex flex-col items-start justify-between gap-4 rounded-3xl bg-tinta px-7 py-8 text-white md:flex-row md:items-center md:px-10">
         <div>
             <h2 class="judul text-2xl">Siap menginap bersama kami?</h2>
             <p class="mt-1 text-xs text-white/60">Booking dalam hitungan menit, tanpa ribet.</p>

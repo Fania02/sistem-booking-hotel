@@ -10,7 +10,7 @@
             <a href="{{ url('/') }}" class="judul text-lg transition hover:text-emas-tua">Royal Hotel</a>
 
             <ul class="hidden items-center gap-7 text-xs font-medium md:flex">
-                <li><a href="{{ request()->is('/') ? '' : url('/') }}#beranda" class="nav-link {{ request()->is('/') ? 'aktif' : '' }} pb-1">Beranda</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#beranda" class="nav-link aktif pb-1">Beranda</a></li>
                 <li><a href="{{ request()->is('/') ? '' : url('/') }}#tipe-kamar" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Tipe Kamar</a></li>
                 <li><a href="{{ request()->is('/') ? '' : url('/') }}#fasilitas" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Fasilitas</a></li>
                 <li><a href="{{ request()->is('/') ? '' : url('/') }}#cara-pesan" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Cara Pesan</a></li>
