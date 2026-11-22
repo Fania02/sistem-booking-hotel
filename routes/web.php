@@ -11,6 +11,13 @@ Route::middleware('guest')->group(function (): void {
 });
 
 /*
+| Halaman tamu: hanya untuk pengguna yang sudah login sebagai tamu.
+*/
+Route::middleware('auth')->group(function (): void {
+    Route::view('dashboard', 'tamu.dashboard')->name('tamu.dashboard');
+});
+
+/*
 | Halaman admin: hanya untuk petugas (admin & resepsionis). Datanya diambil lewat API v1
 | (lihat routes/api.php dan docs/API-ENDPOINTS.md).
 */
