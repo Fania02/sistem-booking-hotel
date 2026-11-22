@@ -3,7 +3,7 @@
  *  - [data-reveal]   : muncul halus saat di-scroll (delay urut otomatis)
  *  - [data-tilt]     : kartu miring mengikuti kursor + kilau emas
  *  - [data-parallax] : lapisan bergeser tipis mengikuti kursor
- *  - gambar gagal dimuat -> tampil latar kopi (tidak ada ikon rusak)
+ *  - gambar gagal dimuat -> pakai ilustrasi cadangan (data-cadangan), tidak pernah kosong
  */
 const kursorHalus = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 const kurangiGerak = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -97,8 +97,19 @@ function initParallax() {
 
 function initFotoGagal() {
     document.addEventListener('error', (event) => {
-        if (event.target.tagName === 'IMG') {
-            event.target.classList.add('foto-gagal');
+        const gambar = event.target;
+
+        if (gambar.tagName !== 'IMG') {
+            return;
+        }
+
+        // Coba ilustrasi cadangan dulu; kalau itu pun gagal, sembunyikan gambar.
+        const cadangan = gambar.dataset.cadangan;
+
+        if (cadangan && !gambar.src.endsWith(cadangan)) {
+            gambar.src = cadangan;
+        } else {
+            gambar.classList.add('foto-gagal');
         }
     }, true);
 }

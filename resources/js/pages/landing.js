@@ -15,7 +15,7 @@ const state = {
 const fotoKamar = (nama) => {
     const daftar = window.FOTO?.kamar ?? {};
 
-    return daftar[String(nama).toLowerCase()] ?? daftar.default ?? '';
+    return daftar[String(nama).toLowerCase()] ?? daftar.default ?? { url: '', cadangan: '' };
 };
 
 function kartuTipe(tipe, { tombol = 'Pesan', info = '' } = {}, index = 0) {
@@ -26,7 +26,7 @@ function kartuTipe(tipe, { tombol = 'Pesan', info = '' } = {}, index = 0) {
     return `
         <article class="kartu overflow-hidden" data-tilt data-reveal>
             <div class="h-44 overflow-hidden bg-kopi">
-                <img src="${escapeHtml(fotoKamar(tipe.nama_tipe))}" alt="Kamar ${escapeHtml(tipe.nama_tipe)}" class="zoom-foto h-full w-full object-cover" loading="lazy">
+                <img src="${escapeHtml(fotoKamar(tipe.nama_tipe).url)}" data-cadangan="${escapeHtml(fotoKamar(tipe.nama_tipe).cadangan)}" alt="Kamar ${escapeHtml(tipe.nama_tipe)}" class="zoom-foto h-full w-full object-cover" loading="lazy">
             </div>
             <div class="p-4">
                 <h3 class="judul text-base">${escapeHtml(tipe.nama_tipe)}</h3>
