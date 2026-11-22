@@ -11,33 +11,23 @@ const state = {
     pesanan: null, // { tipe, kamarId, tgl_checkin, tgl_checkout }
 };
 
-const FOTO_KAMAR = [
-    '/images/kamar-deluxe.jpg',
-    '/images/kamar-suite.jpg',
-    '/images/kamar-standar.jpg',
-];
+const FOTO_KAMAR = ['/images/kamar-standar.jpg', '/images/kamar-deluxe.jpg', '/images/kamar-suite.jpg'];
 
 function kartuTipe(tipe, { tombol = 'Pesan', info = '' } = {}, index = 0) {
     const chips = [`Maks. ${tipe.kapasitas} tamu`, ...FASILITAS_UMUM]
         .map((teks) => `<span class="chip">${escapeHtml(teks)}</span>`)
         .join('');
 
-    const foto = FOTO_KAMAR[index % FOTO_KAMAR.length];
-
     return `
-        <article class="kartu overflow-hidden group hover-kartu" style="animation-delay:${index * 0.1}s">
-            <div class="relative h-48 overflow-hidden">
-                <img src="${foto}" alt="${escapeHtml(tipe.nama_tipe)}"
-                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="absolute inset-0 bg-gradient-to-t from-tinta/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
+        <article class="kartu overflow-hidden">
+            <img src="${FOTO_KAMAR[index % FOTO_KAMAR.length]}" alt="${escapeHtml(tipe.nama_tipe)}" class="h-40 w-full object-cover">
             <div class="p-4">
                 <h3 class="judul text-base">${escapeHtml(tipe.nama_tipe)}</h3>
                 <p class="mt-1 line-clamp-2 text-[11px] text-redam">${escapeHtml(info || tipe.deskripsi || '')}</p>
                 <div class="mt-3 flex flex-wrap gap-1.5">${chips}</div>
                 <div class="mt-4 flex items-center justify-between">
                     <p class="text-sm font-semibold">${formatRupiah(tipe.harga_per_malam)} <span class="text-[10px] font-normal text-redam">/malam</span></p>
-                    <button type="button" class="btn-gelap !px-4 !py-2 hover-btn" data-pesan="${tipe.id}">${tombol}</button>
+                    <button type="button" class="btn-gelap !px-4 !py-2" data-pesan="${tipe.id}">${tombol}</button>
                 </div>
             </div>
         </article>`;
@@ -129,7 +119,7 @@ function tampilkanHasil(cocok, { tgl_checkin, tgl_checkout, jumlah_tamu }) {
 
     $('#hasil-daftar').innerHTML = cocok.length
         ? cocok
-              .map(({ tipe, kamar }) => kartuTipe(tipe, { info: `${kamar.length} kamar kosong untuk ${jumlah_tamu} tamu`, tombol: 'Pesan' }))
+              .map(({ tipe, kamar }, i) => kartuTipe(tipe, { info: `${kamar.length} kamar kosong untuk ${jumlah_tamu} tamu`, tombol: 'Pesan' }, i))
               .join('')
         : '<p class="kartu p-5 text-xs text-redam md:col-span-3">Tidak ada kamar kosong untuk pilihan tersebut. Coba ubah tanggal atau tipe kamar.</p>';
 
@@ -198,14 +188,11 @@ async function kirimPesanan(event) {
 
     try {
         const reservasi = await denganLoading(tombol, async () => {
-            const tamuId = await simpanTamu(data);
-
             return (
-                await api.post('/reservasi', {
-                    tamu_id: tamuId,
+                await api.post('/booking', {
+                    ...data,
                     tgl_checkin,
                     tgl_checkout,
-                    sumber: 'online',
                     kamar_ids: [kamarId],
                 })
             ).data;
@@ -220,91 +207,34 @@ async function kirimPesanan(event) {
     }
 }
 
-/** Buat tamu baru; bila NIK sudah terdaftar, pakai data tamu yang ada. */
-async function simpanTamu(data) {
-    try {
-        return (await api.post('/tamu', data)).data.id;
-    } catch (error) {
-        const nikGanda = error instanceof ApiError && error.status === 422 && error.errors.nik && Object.keys(error.errors).length === 1;
-
-        if (!nikGanda) {
-            throw error;
-        }
-
-        const { data: ditemukan } = await api.get('/tamu', { search: data.nik });
-        const tamu = ditemukan.find((t) => t.nik === data.nik);
-
-        if (!tamu) {
-            throw error;
-        }
-
-        return tamu.id;
-    }
-/* ---------- Hero Slideshow ---------- */
+/* ---------- Init ---------- */
 
 function initSlideshow() {
     const slides = $$('.hero-slide');
     const dots = $$('.slide-dot');
-    if (!slides.length) return;
 
-    let current = 0;
-
-    function goTo(n) {
-        slides[current].classList.replace('opacity-100', 'opacity-0');
-        dots[current].classList.remove('bg-white', 'scale-125');
-        dots[current].classList.add('bg-white/50');
-        current = (n + slides.length) % slides.length;
-        slides[current].classList.replace('opacity-0', 'opacity-100');
-        dots[current].classList.remove('bg-white/50');
-        dots[current].classList.add('bg-white', 'scale-125');
+    if (slides.length < 2) {
+        return;
     }
 
-    // init dots
-    dots.forEach((dot, i) => {
-        dot.addEventListener('click', () => goTo(i));
-        if (i === 0) { dot.classList.add('bg-white', 'scale-125'); }
-    });
+    let aktif = 0;
 
-    // auto advance every 4 seconds
-    setInterval(() => goTo(current + 1), 4000);
+    const tampil = (nomor) => {
+        slides[aktif].classList.replace('opacity-100', 'opacity-0');
+        dots[aktif]?.classList.replace('bg-white', 'bg-white/50');
+        aktif = (nomor + slides.length) % slides.length;
+        slides[aktif].classList.replace('opacity-0', 'opacity-100');
+        dots[aktif]?.classList.replace('bg-white/50', 'bg-white');
+    };
+
+    dots[0]?.classList.replace('bg-white/50', 'bg-white');
+    dots.forEach((titik, i) => titik.addEventListener('click', () => tampil(i)));
+    setInterval(() => tampil(aktif + 1), 4000);
 }
-
-/* ---------- Scroll Fade-In ---------- */
-
-function initScrollAnimation() {
-    const observer = new IntersectionObserver(
-        (entries) => entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('anim-visible');
-                observer.unobserve(entry.target);
-            }
-        }),
-        { threshold: 0.12 }
-    );
-
-    $$('section, .kartu, article').forEach((el) => {
-        el.classList.add('anim-fade');
-        observer.observe(el);
-    });
-}
-
-/* ---------- Custom Cursor Glow ---------- */
-
-function initCursorGlow() {
-    const glow = document.createElement('div');
-    glow.id = 'cursor-glow';
-    glow.style.cssText = 'position:fixed;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(185,138,88,0.12) 0%,transparent 70%);pointer-events:none;transform:translate(-50%,-50%);transition:left 0.08s ease,top 0.08s ease;z-index:9999;';
-    document.body.appendChild(glow);
-
-    document.addEventListener('mousemove', (e) => {
-        glow.style.left = e.clientX + 'px';
-        glow.style.top = e.clientY + 'px';
-    });
-}
-
-/* ---------- Init ---------- */
 
 export function initLanding() {
+    initSlideshow();
+
     const form = $('#form-cari');
     const hari = hariIni();
     form.tgl_checkin.min = hari;
@@ -345,7 +275,4 @@ export function initLanding() {
     });
 
     muatTipe();
-    initSlideshow();
-    initScrollAnimation();
-    initCursorGlow();
 }
