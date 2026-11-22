@@ -4,96 +4,103 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\Peran;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PenggunaRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-/** Kelola akun (khusus admin). */
+/**
+ * Akun petugas (admin & resepsionis). Hanya admin. Akun tamu tidak dikelola di sini.
+ */
 class PenggunaController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    private function staf()
     {
-        $filter = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'peran' => ['nullable', Rule::enum(Peran::class)],
-        ]);
-
-        $daftar = User::query()
-            ->when($filter['search'] ?? null, fn ($q, $cari) => $q->where(fn ($w) => $w->where('name', 'like', "%{$cari}%")->orWhere('email', 'like', "%{$cari}%")))
-            ->when($filter['peran'] ?? null, fn ($q, $peran) => $q->where('role', $peran))
-            ->orderBy('name')
-            ->limit(200)
-            ->get();
-
-        return response()->json(['data' => $daftar->map(fn (User $u) => $this->bentuk($u, $request))->values()]);
+        return User::query()->whereIn('role', array_map(fn (Peran $p) => $p->value, Peran::staf()));
     }
 
-    public function store(Request $request): JsonResponse
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'peran' => ['required', Rule::enum(Peran::class)],
-            'password' => ['required', 'string', 'min:8'],
-        ]);
+        $cari = $request->validate(['search' => ['nullable', 'string', 'max:100']])['search'] ?? null;
 
-        $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
-        $user->role = Peran::from($data['peran']);
-        $user->save();
-
-        return response()->json(['data' => $this->bentuk($user, $request)], 201);
+        return UserResource::collection(
+            $this->staf()
+                ->when($cari, fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$cari}%")->orWhere('email', 'like', "%{$cari}%")))
+                ->orderBy('name')
+                ->get(),
+        );
     }
 
-    public function update(Request $request, User $pengguna): JsonResponse
+    public function show(User $pengguna): UserResource
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($pengguna->id)],
-            'peran' => ['required', Rule::enum(Peran::class)],
-            'password' => ['nullable', 'string', 'min:8'],
-        ]);
+        return new UserResource($this->pastikanStaf($pengguna));
+    }
 
-        if ($pengguna->id === $request->user()->id && $data['peran'] !== $pengguna->role->value) {
-            throw ValidationException::withMessages(['peran' => 'Kamu tidak bisa mengubah peran akunmu sendiri.']);
+    public function store(PenggunaRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $pengguna = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+        $pengguna->forceFill(['role' => $data['peran']])->save();
+
+        return (new UserResource($pengguna))->response()->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function update(PenggunaRequest $request, User $pengguna): UserResource
+    {
+        $this->pastikanStaf($pengguna);
+        $data = $request->validated();
+
+        if ($pengguna->role === Peran::Admin && $data['peran'] !== Peran::Admin->value) {
+            if ($pengguna->is($request->user())) {
+                throw ValidationException::withMessages(['peran' => 'Anda tidak dapat menurunkan peran akun Anda sendiri.']);
+            }
+            $this->pastikanMasihAdaAdmin($pengguna);
         }
 
-        $pengguna->name = $data['name'];
-        $pengguna->email = $data['email'];
-        $pengguna->role = Peran::from($data['peran']);
-
+        $pengguna->fill(['name' => $data['name'], 'email' => $data['email']]);
         if (! empty($data['password'])) {
             $pengguna->password = $data['password'];
         }
+        $pengguna->forceFill(['role' => $data['peran']])->save();
 
-        $pengguna->save();
-
-        return response()->json(['data' => $this->bentuk($pengguna, $request)]);
+        return new UserResource($pengguna);
     }
 
-    public function destroy(Request $request, User $pengguna): Response|JsonResponse
+    public function destroy(Request $request, User $pengguna): JsonResponse
     {
-        if ($pengguna->id === $request->user()->id) {
-            return response()->json(['message' => 'Kamu tidak bisa menghapus akunmu sendiri.'], 409);
+        $this->pastikanStaf($pengguna);
+
+        if ($pengguna->is($request->user())) {
+            return response()->json(['message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], Response::HTTP_CONFLICT);
+        }
+
+        if ($pengguna->role === Peran::Admin) {
+            $this->pastikanMasihAdaAdmin($pengguna);
         }
 
         $pengguna->delete();
 
-        return response()->noContent();
+        return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    /** @return array<string, mixed> */
-    private function bentuk(User $u, Request $request): array
+    private function pastikanStaf(User $pengguna): User
     {
-        return [
-            'id' => $u->id,
-            'name' => $u->name,
-            'email' => $u->email,
-            'peran' => ['value' => $u->role->value, 'label' => $u->role->label()],
-            'saya' => $u->id === $request->user()->id,
-            'dibuat_pada' => $u->created_at?->toIso8601String(),
-        ];
+        abort_unless($pengguna->adalahStaf(), Response::HTTP_NOT_FOUND);
+
+        return $pengguna;
+    }
+
+    private function pastikanMasihAdaAdmin(User $kecuali): void
+    {
+        $lain = User::query()->where('role', Peran::Admin->value)->whereKeyNot($kecuali->getKey())->exists();
+
+        if (! $lain) {
+            throw ValidationException::withMessages(['peran' => 'Minimal harus ada satu akun admin.']);
+        }
     }
 }
