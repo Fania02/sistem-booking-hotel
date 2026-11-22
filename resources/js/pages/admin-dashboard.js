@@ -43,18 +43,33 @@ export async function initAdminDashboard() {
     $('#tanggal-hari-ini').textContent = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
     try {
-        const { data } = await api.get('/admin/ringkasan');
+        const { data } = await api.get('/dashboard');
+        const totalKamar = data.kamar.total;
+        const kamarTerisi = data.kamar.terisi;
+        const okupansi = totalKamar > 0 ? Math.round((kamarTerisi / totalKamar) * 100) : 0;
+        const angka = {
+            checkin_hari_ini: data.reservasi.checkin_hari_ini,
+            checkout_hari_ini: data.reservasi.checkout_hari_ini,
+            pembayaran_menunggu: data.perlu_tindakan.pembayaran_menunggu_verifikasi,
+            pembatalan_diajukan: data.perlu_tindakan.pembatalan_diajukan,
+        };
         const isi = (kunci, nilai, format) => hitungNaik($(`[data-stat="${kunci}"]`), nilai, format);
 
-        isi('checkin_hari_ini', data.checkin_hari_ini);
-        isi('checkout_hari_ini', data.checkout_hari_ini);
-        isi('pendapatan_bulan_ini', data.pendapatan_bulan_ini, formatRupiah);
-        isi('okupansi', data.okupansi, (n) => `${n}%`);
-        isi('pembayaran_menunggu', data.pembayaran_menunggu);
-        isi('pembatalan_diajukan', data.pembatalan_diajukan);
+        isi('checkin_hari_ini', angka.checkin_hari_ini);
+        isi('checkout_hari_ini', angka.checkout_hari_ini);
+        isi('okupansi', okupansi, (n) => `${n}%`);
+        isi('pembayaran_menunggu', angka.pembayaran_menunggu);
+        isi('pembatalan_diajukan', angka.pembatalan_diajukan);
+
+        // Pendapatan hanya dikirim untuk admin; resepsionis melihat tanda strip.
+        if (data.pendapatan) {
+            isi('pendapatan_bulan_ini', data.pendapatan.bulan_ini, formatRupiah);
+        } else {
+            $('[data-stat="pendapatan_bulan_ini"]').textContent = '–';
+        }
 
         ['pembayaran_menunggu', 'pembatalan_diajukan'].forEach((kunci) => {
-            if (data[kunci] > 0) {
+            if (angka[kunci] > 0) {
                 const lencana = $(`[data-stat="${kunci}"]`);
                 lencana.classList.remove('bg-pasir');
                 lencana.classList.add('bg-emas', 'text-white');
@@ -63,16 +78,16 @@ export async function initAdminDashboard() {
 
         grafik(data.grafik_kedatangan);
 
-        requestAnimationFrame(() => ($('#cincin').style.strokeDashoffset = String(276.46 * (1 - data.okupansi / 100))));
-        hitungNaik($('#cincin-angka'), data.okupansi, (n) => `${n}%`);
-        $('#cincin-info').textContent = `${data.kamar_terisi} dari ${data.total_kamar} kamar terisi`;
+        requestAnimationFrame(() => ($('#cincin').style.strokeDashoffset = String(276.46 * (1 - okupansi / 100))));
+        hitungNaik($('#cincin-angka'), okupansi, (n) => `${n}%`);
+        $('#cincin-info').textContent = `${kamarTerisi} dari ${totalKamar} kamar terisi`;
 
         $('#terbaru').innerHTML = data.reservasi_terbaru.length
             ? data.reservasi_terbaru
                   .map(
                       (r) => `
                 <div class="flex flex-wrap items-center justify-between gap-2 py-3 text-xs transition hover:bg-krem/60">
-                    <div><p class="font-semibold">${escapeHtml(r.kode_booking)} · ${escapeHtml(r.tamu ?? '-')}</p>
+                    <div><p class="font-semibold">${escapeHtml(r.kode_booking)} · ${escapeHtml(r.tamu?.nama ?? '-')}</p>
                     <p class="text-[11px] text-redam">${formatTanggal(r.tgl_checkin)} – ${formatTanggal(r.tgl_checkout)}</p></div>
                     <div class="flex items-center gap-3"><span class="font-medium">${formatRupiah(r.total_harga)}</span>
                     <span class="badge ${WARNA_STATUS[r.status.value] ?? ''}">${escapeHtml(r.status.label)}</span></div>

@@ -23,7 +23,8 @@ it('dashboard menampilkan ringkasan; pendapatan hanya untuk admin', function () 
         ->assertJsonPath('data.perlu_tindakan.pembayaran_menunggu_verifikasi', 1)
         ->assertJsonPath('data.perlu_tindakan.pembatalan_diajukan', 1)
         ->assertJsonPath('data.pendapatan.hari_ini', 75000)
-        ->assertJsonCount(2, 'data.reservasi_terbaru');
+        ->assertJsonCount(2, 'data.reservasi_terbaru')
+        ->assertJsonCount(7, 'data.grafik_kedatangan');
 
     $this->app['auth']->forgetGuards();
     $this->actingAs(User::factory()->resepsionis()->create())->getJson('/api/v1/dashboard')->assertOk()->assertJsonMissingPath('data.pendapatan');

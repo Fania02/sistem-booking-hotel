@@ -26,6 +26,14 @@ class PembayaranResource extends JsonResource
             'status' => $this->status->opsi(),
             'diverifikasi_oleh' => $this->whenLoaded('verifikator', fn () => $this->verifikator?->name),
             'catatan' => $this->catatan,
+            'reservasi' => $this->whenLoaded('reservasi', fn () => [
+                'kode_booking' => $this->reservasi->kode_booking,
+                'total_harga' => (float) $this->reservasi->total_harga,
+                'tamu' => $this->reservasi->relationLoaded('tamu') && $this->reservasi->tamu !== null ? [
+                    'nama' => $this->reservasi->tamu->nama,
+                    'no_hp' => $this->reservasi->tamu->no_hp,
+                ] : null,
+            ]),
         ];
     }
 }

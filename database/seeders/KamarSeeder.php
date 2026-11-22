@@ -33,7 +33,7 @@ class KamarSeeder extends Seeder
                         'tipe_kamar_id' => $tipeKamar->getKey(),
                         'lantai' => $lantai,
                         // Kamar 105 sengaja dibuat perbaikan supaya status ini ikut terlihat saat uji tampilan.
-                        'status' => $nomorKamar === '105' ? StatusKamar::Perbaikan : StatusKamar::Tersedia,
+                        'status' => (string) $nomorKamar === '105' ? StatusKamar::Perbaikan : StatusKamar::Tersedia,
                     ],
                 );
             }
