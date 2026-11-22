@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StatusPembatalan;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,7 @@ class Pembatalan extends Model
         return [
             'tgl_pengajuan' => 'datetime',
             'tgl_diproses' => 'datetime',
+            'status' => StatusPembatalan::class,
         ];
     }
 

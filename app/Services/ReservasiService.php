@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\StatusKamar;
+use App\Enums\StatusPembatalan;
 use App\Enums\StatusPembayaran;
 use App\Enums\StatusReservasi;
 use App\Models\Kamar;
+use App\Models\Pembatalan;
 use App\Models\Reservasi;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -126,16 +128,7 @@ class ReservasiService
                         'catatan' => $data['catatan'] ?? null,
                     ], fn ($nilai) => $nilai !== null),
                 ),
-                StatusReservasi::Batal => $reservasi->pembatalan()->create(
-                    [
-                        'alasan' => $data['alasan'],
-                        'tgl_pengajuan' => $waktu,
-                        'status' => 'disetujui',
-                        'diproses_oleh' => $petugasId,
-                        'tgl_diproses' => $waktu,
-                        'catatan_petugas' => $data['catatan'] ?? null,
-                    ],
-                ),
+                StatusReservasi::Batal => $this->catatPembatalan($reservasi, $data, $waktu, $petugasId),
                 default => null,
             };
 
@@ -143,6 +136,76 @@ class ReservasiService
             $reservasi->save();
 
             return $reservasi;
+        });
+    }
+
+    /**
+     * Mencatat pembatalan oleh petugas. Bila tamu sudah mengajukan pembatalan,
+     * pengajuan itulah yang disetujui (tidak membuat catatan ganda).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function catatPembatalan(Reservasi $reservasi, array $data, \DateTimeInterface $waktu, ?int $petugasId): void
+    {
+        $hasil = [
+            'status' => StatusPembatalan::Disetujui,
+            'diproses_oleh' => $petugasId,
+            'tgl_diproses' => $waktu,
+            'catatan_petugas' => $data['catatan'] ?? null,
+        ];
+
+        $pengajuan = $reservasi->pembatalan()->where('status', StatusPembatalan::Diajukan->value)->latest('id')->first();
+
+        if ($pengajuan !== null) {
+            $pengajuan->update($hasil);
+
+            return;
+        }
+
+        $reservasi->pembatalan()->create([
+            ...$hasil,
+            'alasan' => $data['alasan'],
+            'tgl_pengajuan' => $waktu,
+        ]);
+    }
+
+    /**
+     * Memproses pengajuan pembatalan dari tamu: disetujui (reservasi menjadi batal) atau ditolak.
+     */
+    public function prosesPembatalan(Pembatalan $pembatalan, StatusPembatalan $tujuan, ?int $petugasId, ?string $catatan = null): Pembatalan
+    {
+        if ($tujuan === StatusPembatalan::Diajukan) {
+            throw ValidationException::withMessages(['status' => 'Pilih disetujui atau ditolak.']);
+        }
+
+        return DB::transaction(function () use ($pembatalan, $tujuan, $petugasId, $catatan): Pembatalan {
+            $pembatalan = Pembatalan::query()->lockForUpdate()->findOrFail($pembatalan->getKey());
+
+            if ($pembatalan->status !== StatusPembatalan::Diajukan) {
+                throw ValidationException::withMessages(['status' => 'Pengajuan ini sudah diproses.']);
+            }
+
+            $reservasi = Reservasi::query()->lockForUpdate()->findOrFail($pembatalan->reservasi_id);
+
+            if ($tujuan === StatusPembatalan::Disetujui) {
+                if (! $reservasi->status->bolehBerubahKe(StatusReservasi::Batal)) {
+                    throw ValidationException::withMessages([
+                        'status' => "Reservasi berstatus {$reservasi->status->label()} tidak dapat dibatalkan.",
+                    ]);
+                }
+
+                $reservasi->status = StatusReservasi::Batal;
+                $reservasi->save();
+            }
+
+            $pembatalan->update([
+                'status' => $tujuan,
+                'diproses_oleh' => $petugasId,
+                'tgl_diproses' => now(),
+                'catatan_petugas' => $catatan,
+            ]);
+
+            return $pembatalan;
         });
     }
 

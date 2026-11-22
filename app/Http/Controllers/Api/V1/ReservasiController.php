@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class ReservasiController extends Controller
 {
     /** @var list<string> */
-    private const RELASI = ['tamu', 'detail.kamar.tipeKamar', 'checkinCheckout', 'pembatalan'];
+    private const RELASI = ['tamu', 'detail.kamar.tipeKamar', 'checkinCheckout', 'pembatalan', 'pembayaran'];
 
     public function __construct(private ReservasiService $service) {}
 
