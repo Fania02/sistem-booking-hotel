@@ -17,6 +17,13 @@ Route::middleware('guest')->group(function (): void {
 Route::prefix('admin')->name('admin.')
     ->middleware(['auth', 'peran:'.implode(',', array_map(fn (Peran $p) => $p->value, Peran::staf()))])
     ->group(function (): void {
-        Route::view('reservasi', 'admin.reservasi')->name('reservasi');
-        Route::view('tamu', 'admin.tamu')->name('tamu');
+        Route::view('dashboard',  'admin.dashboard')->name('dashboard');
+        Route::view('reservasi',  'admin.reservasi')->name('reservasi');
+        Route::view('tamu',       'admin.tamu')->name('tamu');
+        Route::view('kamar',      'admin.kamar')->name('kamar');
+        Route::view('tipe-kamar', 'admin.tipe-kamar')->name('tipe-kamar');
+        Route::view('fasilitas',  'admin.fasilitas')->name('fasilitas');
+        Route::view('pembayaran', 'admin.pembayaran')->name('pembayaran');
+        Route::view('pembatalan', 'admin.pembatalan')->name('pembatalan');
+        Route::view('pengguna',   'admin.pengguna')->name('pengguna');
     });
