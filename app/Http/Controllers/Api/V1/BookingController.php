@@ -2,51 +2,67 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\SumberReservasi;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ReservasiResource;
+use App\Http\Requests\BookingRequest;
+use App\Http\Resources\BookingResource;
+use App\Models\Reservasi;
 use App\Models\Tamu;
 use App\Services\ReservasiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
-/** Booking dari halaman publik (tamu login maupun belum login). */
 class BookingController extends Controller
 {
     public function __construct(private ReservasiService $service) {}
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Pemesanan publik: mencari tamu berdasarkan NIK (atau membuat baru), lalu membuat reservasi.
+     * Data tamu yang sudah ada tidak ditimpa, dan respons tidak membocorkan data tamu.
+     */
+    public function store(BookingRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'nama' => ['required', 'string', 'max:100'],
-            'nik' => ['required', 'digits:16'],
-            'no_hp' => ['required', 'string', 'max:15'],
-            'alamat' => ['nullable', 'string', 'max:1000'],
-            'tgl_checkin' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
-            'tgl_checkout' => ['required', 'date_format:Y-m-d', 'after:tgl_checkin'],
-            'kamar_ids' => ['required', 'array', 'min:1'],
-            'kamar_ids.*' => ['integer', 'distinct', 'exists:kamar,id'],
-        ]);
+        $data = $request->validated();
 
-        $reservasi = DB::transaction(function () use ($data, $request) {
-            // Tamu yang sudah login memakai data tamu akunnya; selain itu cocokkan lewat NIK.
-            $tamu = $request->user()?->tamu
-                ?? Tamu::firstOrCreate(
-                    ['nik' => $data['nik']],
-                    ['nama' => $data['nama'], 'no_hp' => $data['no_hp'], 'alamat' => $data['alamat'] ?? ''],
-                );
+        $reservasi = DB::transaction(function () use ($data, $request): Reservasi {
+            $tamu = Tamu::withTrashed()->firstOrCreate(
+                ['nik' => $data['nik']],
+                ['nama' => $data['nama'], 'no_hp' => $data['no_hp'], 'alamat' => $data['alamat'] ?? null],
+            );
+
+            if ($tamu->trashed()) {
+                $tamu->restore();
+            }
 
             return $this->service->buat([
                 'tamu_id' => $tamu->id,
                 'tgl_checkin' => $data['tgl_checkin'],
                 'tgl_checkout' => $data['tgl_checkout'],
-                'sumber' => 'online',
+                'sumber' => SumberReservasi::Online->value,
                 'kamar_ids' => $data['kamar_ids'],
-            ]);
+            ], $request->user()?->id);
         });
 
-        return (new ReservasiResource($reservasi->load('tamu', 'detail.kamar.tipeKamar')))
+        return (new BookingResource($reservasi->load('detail.kamar.tipeKamar')))
             ->response()
-            ->setStatusCode(201);
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Cek reservasi dengan kode booking + NIK pemesan.
+     */
+    public function show(Request $request, string $kode): BookingResource
+    {
+        $nik = $request->validate(['nik' => ['required', 'string']])['nik'];
+
+        $reservasi = Reservasi::query()
+            ->with('detail.kamar.tipeKamar')
+            ->where('kode_booking', $kode)
+            ->whereHas('tamu', fn ($q) => $q->where('nik', $nik))
+            ->firstOrFail();
+
+        return new BookingResource($reservasi);
     }
 }
