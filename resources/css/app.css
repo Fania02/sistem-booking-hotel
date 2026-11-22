@@ -118,4 +118,81 @@
     .foto-placeholder {
         @apply flex items-center justify-center bg-kopi text-[10px] font-medium uppercase tracking-[0.25em] text-white/40;
     }
+
+    /* ===== Animasi scroll fade-in ===== */
+    .anim-fade {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .anim-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* ===== Hover kartu kamar ===== */
+    .hover-kartu {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .hover-kartu:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 40px -8px rgba(43, 31, 26, 0.18);
+    }
+
+    /* ===== Hover tombol ripple ===== */
+    .hover-btn {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hover-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.15);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+
+    .hover-btn:hover::after {
+        transform: scaleX(1);
+    }
+
+    /* ===== Navbar link hover underline slide ===== */
+    nav a {
+        position: relative;
+    }
+
+    nav a:not(.btn-gelap):not(.btn-garis):not(.btn-emas):not(.judul)::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 1.5px;
+        background: var(--color-emas);
+        transition: width 0.25s ease;
+    }
+
+    nav a:not(.btn-gelap):not(.btn-garis):not(.btn-emas):not(.judul):hover::after {
+        width: 100%;
+    }
+
+    /* ===== Input focus glow ===== */
+    .input:focus,
+    .input-krem:focus {
+        box-shadow: 0 0 0 3px rgba(185, 138, 88, 0.15);
+    }
+
+    /* ===== Chip hover shimmer ===== */
+    .chip {
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .chip:hover {
+        @apply bg-emas text-white;
+    }
 }
