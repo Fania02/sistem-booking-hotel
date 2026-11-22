@@ -7,16 +7,16 @@
 <body data-page="@yield('page')" class="lg:flex lg:min-h-screen">
     @php
         $menu = [
-            ['Dashboard', null, null],
-            ['Reservasi', url('/admin/reservasi'), 'reservasi'],
-            ['Check-in & Check-out', url('/admin/reservasi?tab=checkin'), 'checkin'],
-            ['Tamu', url('/admin/tamu'), 'tamu'],
-            ['Kamar', null, null],
-            ['Tipe Kamar', null, null],
-            ['Fasilitas', null, null],
-            ['Pembayaran', null, null],
-            ['Pembatalan', null, null],
-            ['Pengguna', null, null],
+            ['🏠 Dashboard',           url('/admin/dashboard'),  'dashboard'],
+            ['📋 Reservasi',            url('/admin/reservasi'),  'reservasi'],
+            ['🛎️ Check-in & Check-out', url('/admin/reservasi?tab=checkin'), 'checkin'],
+            ['👥 Tamu',                 url('/admin/tamu'),       'tamu'],
+            ['🏨 Kamar',                url('/admin/kamar'),      'kamar'],
+            ['🏷️ Tipe Kamar',           url('/admin/tipe-kamar'), 'tipe-kamar'],
+            ['✨ Fasilitas',             url('/admin/fasilitas'),  'fasilitas'],
+            ['💳 Pembayaran',            url('/admin/pembayaran'), 'pembayaran'],
+            ['❌ Pembatalan',            url('/admin/pembatalan'), 'pembatalan'],
+            ['⚙️ Pengguna',              url('/admin/pengguna'),   'pengguna'],
         ];
     @endphp
 
@@ -28,12 +28,8 @@
         </a>
         <nav class="mt-8 flex flex-col gap-1 text-xs">
             @foreach ($menu as [$nama, $tautan, $kunci])
-                @if ($tautan)
-                    <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
-                       class="rounded-lg px-3 py-2.5 transition {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">{{ $nama }}</a>
-                @else
-                    <span class="cursor-not-allowed rounded-lg px-3 py-2.5 text-white/35" title="Belum tersedia">{{ $nama }}</span>
-                @endif
+                <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
+                   class="rounded-lg px-3 py-2.5 transition {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold text-white' : 'text-white/70 hover:bg-white/8 hover:text-white' }}">{{ $nama }}</a>
             @endforeach
         </nav>
         <div class="mt-auto border-t border-white/10 px-2 pt-4 text-xs">
@@ -54,15 +50,14 @@
 
     <div id="menu-admin-mobile" class="fixed inset-0 z-40 hidden bg-tinta/60 lg:hidden" hidden>
         <div class="h-full w-64 bg-tinta p-5 text-white">
-            <span class="judul mb-6 block text-lg">Royal Hotel</span>
+            <div class="mb-6 flex items-center gap-3">
+                <span class="judul block text-lg">Royal Hotel</span>
+                <span class="text-[10px] text-emas">Admin</span>
+            </div>
             @foreach ($menu as [$nama, $tautan, $kunci])
-                @if ($tautan)
-                    <a href="{{ $tautan }}" class="block rounded-lg px-3 py-2.5 text-sm {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70' }}">{{ $nama }}</a>
-                @else
-                    <span class="block px-3 py-2.5 text-sm text-white/35">{{ $nama }}</span>
-                @endif
+                <a href="{{ $tautan }}" class="block rounded-lg px-3 py-2.5 text-sm {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold text-white' : 'text-white/70 hover:bg-white/5' }}">{{ $nama }}</a>
             @endforeach
-            <button type="button" data-keluar class="mt-4 block w-full rounded-lg bg-white/10 px-3 py-2.5 text-left text-sm text-white/80">Keluar ({{ auth()->user()->name }})</button>
+            <button type="button" data-keluar class="mt-4 block w-full rounded-lg bg-white/10 px-3 py-2.5 text-left text-sm text-white/80 hover:bg-white/20">⟵ Keluar ({{ auth()->user()->name }})</button>
         </div>
     </div>
 
