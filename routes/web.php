@@ -26,4 +26,4 @@ Route::prefix('admin')->name('admin.')
         Route::view('pembayaran', 'admin.pembayaran')->name('pembayaran');
         Route::view('pembatalan', 'admin.pembatalan')->name('pembatalan');
         Route::view('pengguna',   'admin.pengguna')->name('pengguna');
-    });
+});
