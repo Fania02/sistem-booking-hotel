@@ -23,13 +23,22 @@
                 </div>
             </div>
 
-            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8">
-                @if (file_exists(public_path('images/hero.jpg')))
-                    <img src="{{ asset('images/hero.jpg') }}" alt="Gedung Royal Hotel" class="aspect-[4/3] h-full w-full rounded-xl object-cover md:aspect-auto">
-                @else
-                    {{-- Letakkan foto hotel di public/images/hero.jpg untuk menggantikan placeholder ini. --}}
-                    <div class="foto-placeholder aspect-[4/3] h-full w-full rounded-xl md:aspect-auto md:min-h-72">Foto hotel</div>
-                @endif
+            {{-- Hero slideshow --}}
+            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8 relative overflow-hidden rounded-3xl">
+                <div id="hero-slideshow" class="relative aspect-[4/3] h-full w-full rounded-xl overflow-hidden md:aspect-auto md:min-h-72">
+                    @foreach (['hero-1.jpg','hero-2.jpg','hero-3.jpg'] as $i => $foto)
+                        <img src="{{ asset('images/'.$foto) }}"
+                             alt="Royal Hotel foto {{ $i+1 }}"
+                             class="hero-slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 {{ $i === 0 ? 'opacity-100' : 'opacity-0' }}"
+                             data-slide="{{ $i }}">
+                    @endforeach
+                    {{-- Dots indicator --}}
+                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        @foreach ([0,1,2] as $d)
+                            <button type="button" class="slide-dot size-1.5 rounded-full bg-white/50 transition-all" data-dot="{{ $d }}" aria-label="Slide {{ $d+1 }}"></button>
+                        @endforeach
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -107,7 +116,11 @@
 
     {{-- Fasilitas --}}
     <section id="fasilitas" class="mt-20 grid scroll-mt-20 items-center gap-8 md:grid-cols-[1.1fr_1fr]">
-        <div class="foto-placeholder aspect-[4/3] rounded-3xl">Foto fasilitas</div>
+        <div class="relative aspect-[4/3] rounded-3xl overflow-hidden group">
+            <img src="{{ asset('images/fasilitas.jpg') }}" alt="Fasilitas Royal Hotel"
+                 class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+            <div class="absolute inset-0 bg-gradient-to-t from-tinta/40 to-transparent"></div>
+        </div>
         <div>
             <p class="eyebrow">Fasilitas</p>
             <h2 class="judul mt-1 text-2xl md:text-3xl">Lebih dari sekadar kamar</h2>

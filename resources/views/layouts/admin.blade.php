@@ -7,16 +7,13 @@
 <body data-page="@yield('page')" class="lg:flex lg:min-h-screen">
     @php
         $menu = [
-            ['Dashboard', null, null],
-            ['Reservasi', url('/admin/reservasi'), 'reservasi'],
-            ['Check-in & Check-out', url('/admin/reservasi?tab=checkin'), 'checkin'],
-            ['Tamu', url('/admin/tamu'), 'tamu'],
-            ['Kamar', null, null],
-            ['Tipe Kamar', null, null],
-            ['Fasilitas', null, null],
-            ['Pembayaran', null, null],
-            ['Pembatalan', null, null],
-            ['Pengguna', null, null],
+            ['Dashboard',              url('/admin/dashboard'),                 'dashboard'],
+            ['Reservasi',              url('/admin/reservasi'),                 'reservasi'],
+            ['Check-in & Check-out',   url('/admin/reservasi?tab=checkin'),     'checkin'],
+            ['Tamu',                   url('/admin/tamu'),                      'tamu'],
+            ['Pembayaran',             url('/admin/pembayaran'),                'pembayaran'],
+            ['Pembatalan',             url('/admin/pembatalan'),                'pembatalan'],
+            ['Pengguna',               url('/admin/pengguna'),                  'pengguna'],
         ];
     @endphp
 
@@ -31,8 +28,6 @@
                 @if ($tautan)
                     <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
                        class="rounded-lg px-3 py-2.5 transition {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">{{ $nama }}</a>
-                @else
-                    <span class="cursor-not-allowed rounded-lg px-3 py-2.5 text-white/35" title="Belum tersedia">{{ $nama }}</span>
                 @endif
             @endforeach
         </nav>
