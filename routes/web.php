@@ -3,6 +3,7 @@
 use App\Enums\Peran;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\TamuReservasiController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'landing')->name('beranda');
@@ -21,6 +22,15 @@ Route::prefix('api/v1')->name('api.v1.')->group(function (): void {
     Route::post('auth/registrasi', [AuthController::class, 'registrasi'])->middleware('throttle:10,1')->name('auth.registrasi');
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::post('booking', [BookingController::class, 'store'])->middleware('throttle:30,1')->name('booking');
+});
+
+/*
+| API milik tamu yang sedang login (riwayat, bukti bayar, pembatalan).
+*/
+Route::prefix('api/v1/saya')->name('api.v1.saya.')->middleware('auth')->group(function (): void {
+    Route::get('reservasi', [TamuReservasiController::class, 'index'])->name('reservasi.index');
+    Route::post('reservasi/{reservasi}/pembayaran', [TamuReservasiController::class, 'bayar'])->name('reservasi.bayar');
+    Route::post('reservasi/{reservasi}/pembatalan', [TamuReservasiController::class, 'batal'])->name('reservasi.batal');
 });
 
 /*

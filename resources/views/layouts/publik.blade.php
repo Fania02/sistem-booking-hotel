@@ -10,11 +10,11 @@
             <a href="{{ url('/') }}" class="judul text-lg transition hover:text-emas-tua">Royal Hotel</a>
 
             <ul class="hidden items-center gap-7 text-xs font-medium md:flex">
-                <li><a href="#beranda" class="nav-link aktif pb-1">Beranda</a></li>
-                <li><a href="#tipe-kamar" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Tipe Kamar</a></li>
-                <li><a href="#fasilitas" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Fasilitas</a></li>
-                <li><a href="#cara-pesan" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Cara Pesan</a></li>
-                <li><a href="#kontak" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Kontak</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#beranda" class="nav-link aktif pb-1">Beranda</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#tipe-kamar" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Tipe Kamar</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#fasilitas" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Fasilitas</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#cara-pesan" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Cara Pesan</a></li>
+                <li><a href="{{ request()->is('/') ? '' : url('/') }}#kontak" class="nav-link pb-1 text-tinta/70 hover:text-tinta">Kontak</a></li>
             </ul>
 
             <div class="hidden items-center gap-2 md:flex">
@@ -29,7 +29,7 @@
                     <a href="{{ route('login') }}" class="btn-garis">Masuk</a>
                     <a href="{{ route('daftar') }}" class="btn-garis">Daftar</a>
                 @endauth
-                <a href="#form-cari" class="btn-gelap">Pesan Sekarang</a>
+                <a href="{{ request()->is('/') ? '' : url('/') }}#form-cari" class="btn-gelap">Pesan Sekarang</a>
             </div>
 
             <button type="button" id="tombol-menu" class="grid size-9 place-items-center rounded-lg bg-white md:hidden" aria-label="Buka menu" aria-expanded="false">
@@ -38,11 +38,11 @@
         </nav>
 
         <div id="menu-mobile" class="mx-5 mb-3 hidden rounded-2xl bg-white p-4 text-sm md:hidden" hidden>
-            <a class="block py-2" href="#beranda">Beranda</a>
-            <a class="block py-2" href="#tipe-kamar">Tipe Kamar</a>
-            <a class="block py-2" href="#fasilitas">Fasilitas</a>
-            <a class="block py-2" href="#cara-pesan">Cara Pesan</a>
-            <a class="block py-2" href="#kontak">Kontak</a>
+            <a class="block py-2" href="{{ request()->is('/') ? '' : url('/') }}#beranda">Beranda</a>
+            <a class="block py-2" href="{{ request()->is('/') ? '' : url('/') }}#tipe-kamar">Tipe Kamar</a>
+            <a class="block py-2" href="{{ request()->is('/') ? '' : url('/') }}#fasilitas">Fasilitas</a>
+            <a class="block py-2" href="{{ request()->is('/') ? '' : url('/') }}#cara-pesan">Cara Pesan</a>
+            <a class="block py-2" href="{{ request()->is('/') ? '' : url('/') }}#kontak">Kontak</a>
             @auth
                 <button type="button" data-keluar class="btn-garis mt-2 w-full">Keluar</button>
             @else

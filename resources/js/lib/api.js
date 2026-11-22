@@ -22,7 +22,7 @@ function bentukQuery(params = {}) {
     return teks ? `?${teks}` : '';
 }
 
-async function kirim(method, path, { params, body } = {}) {
+async function kirim(method, path, { params, body, formData } = {}) {
     const response = await fetch(`${BASE}${path}${bentukQuery(params)}`, {
         method,
         headers: {
@@ -31,7 +31,7 @@ async function kirim(method, path, { params, body } = {}) {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
             ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: formData ?? (body ? JSON.stringify(body) : undefined),
     });
 
     if (response.status === 204) {
@@ -52,4 +52,6 @@ export const api = {
     post: (path, body) => kirim('POST', path, { body }),
     put: (path, body) => kirim('PUT', path, { body }),
     delete: (path) => kirim('DELETE', path),
+    /** Kirim FormData (untuk upload file). Content-Type diisi otomatis oleh browser. */
+    upload: (path, formData) => kirim('POST', path, { formData }),
 };
