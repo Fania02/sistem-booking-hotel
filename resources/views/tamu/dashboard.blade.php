@@ -1,22 +1,45 @@
 @extends('layouts.publik')
 
-@section('title', 'Riwayat Reservasi · Royal Hotel')
+@section('title', 'Dashboard Tamu · Royal Hotel')
 @section('page', 'tamu-dashboard')
 
 @section('content')
-<div class="mx-auto max-w-4xl px-5 py-10">
 
-    {{-- Greeting --}}
-    <div class="mb-8 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-        <div>
-            <p class="eyebrow">Dashboard Tamu</p>
-            <h1 class="judul mt-1 text-2xl md:text-3xl">
-                Selamat datang, <em class="text-emas not-italic">{{ auth()->user()->name }}</em> 👋
-            </h1>
-            <p class="mt-1 text-xs text-redam">Kelola reservasi, bukti pembayaran, dan pembatalan Anda di sini.</p>
+{{-- ===== Hero Header Tamu ===== --}}
+<div class="hero-tamu px-5 py-10 text-white">
+    <div class="mx-auto max-w-4xl">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-widest text-emas/80">Dashboard Tamu</p>
+                <h1 class="judul mt-2 text-2xl md:text-3xl">
+                    Selamat datang, <em class="text-emas not-italic">{{ auth()->user()->name }}</em> 👋
+                </h1>
+                <p class="mt-1 text-xs text-white/60">Kelola reservasi, pembayaran, dan pembatalan Anda di sini.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 shrink-0">
+                <a href="{{ url('/') }}#form-cari" class="btn-emas hover-btn">+ Pesan Kamar</a>
+                <a href="{{ url('/') }}" class="btn-garis-terang">← Beranda</a>
+            </div>
         </div>
-        <a href="{{ url('/') }}" class="btn-garis shrink-0">← Kembali ke Beranda</a>
+
+        {{-- Stat mini --}}
+        <div class="mt-6 grid grid-cols-3 gap-3">
+            @foreach([
+                ['id' => 'stat-tamu-total',    'label' => 'Total Reservasi',  'ikon' => '📋'],
+                ['id' => 'stat-tamu-aktif',    'label' => 'Reservasi Aktif',  'ikon' => '🛎️'],
+                ['id' => 'stat-tamu-selesai',  'label' => 'Sudah Selesai',    'ikon' => '✅'],
+            ] as $s)
+                <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-3 text-center">
+                    <span class="text-lg">{{ $s['ikon'] }}</span>
+                    <p class="judul mt-1 text-xl" id="{{ $s['id'] }}">—</p>
+                    <p class="text-[10px] text-white/60">{{ $s['label'] }}</p>
+                </div>
+            @endforeach
+        </div>
     </div>
+</div>
+
+<div class="mx-auto max-w-4xl px-5 py-8">
 
     {{-- Tab filter --}}
     <div id="tab-riwayat" class="mb-5 flex gap-2 flex-wrap" role="group">
