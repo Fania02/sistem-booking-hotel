@@ -7,17 +7,19 @@
 <body data-page="@yield('page')" class="lg:flex lg:min-h-screen">
     @php
         $menu = [
-            ['🏠 Dashboard',           url('/admin/dashboard'),  'dashboard'],
-            ['📋 Reservasi',            url('/admin/reservasi'),  'reservasi'],
-            ['🛎️ Check-in & Check-out', url('/admin/reservasi?tab=checkin'), 'checkin'],
-            ['👥 Tamu',                 url('/admin/tamu'),       'tamu'],
-            ['🏨 Kamar',                url('/admin/kamar'),      'kamar'],
-            ['🏷️ Tipe Kamar',           url('/admin/tipe-kamar'), 'tipe-kamar'],
-            ['✨ Fasilitas',             url('/admin/fasilitas'),  'fasilitas'],
-            ['💳 Pembayaran',            url('/admin/pembayaran'), 'pembayaran'],
-            ['❌ Pembatalan',            url('/admin/pembatalan'), 'pembatalan'],
-            ['⚙️ Pengguna',              url('/admin/pengguna'),   'pengguna'],
+            ['Dashboard',              url('/admin/dashboard'),                 'dashboard'],
+            ['Reservasi',              url('/admin/reservasi'),                 'reservasi'],
+            ['Check-in & Check-out',   url('/admin/reservasi?tab=checkin'),     'checkin'],
+            ['Tamu',                   url('/admin/tamu'),                      'tamu'],
+            ['Pembayaran',             url('/admin/pembayaran'),                'pembayaran'],
+            ['Pembatalan',             url('/admin/pembatalan'),                'pembatalan'],
+            ['Pengguna',               url('/admin/pengguna'),                  'pengguna'],
         ];
+
+        // Kelola akun hanya untuk admin
+        if (auth()->user()?->role !== \App\Enums\Peran::Admin) {
+            $menu = array_values(array_filter($menu, fn ($m) => $m[2] !== 'pengguna'));
+        }
     @endphp
 
     {{-- Sidebar (desktop) --}}
@@ -28,14 +30,16 @@
         </a>
         <nav class="mt-8 flex flex-col gap-1 text-xs">
             @foreach ($menu as [$nama, $tautan, $kunci])
-                <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
-                   class="rounded-lg px-3 py-2.5 transition {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold text-white' : 'text-white/70 hover:bg-white/8 hover:text-white' }}">{{ $nama }}</a>
+                @if ($tautan)
+                    <a href="{{ $tautan }}" data-menu="{{ $kunci }}"
+                       class="rounded-lg px-3 py-2.5 transition hover:translate-x-1 {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">{{ $nama }}</a>
+                @endif
             @endforeach
         </nav>
-        <div class="mt-auto border-t border-white/10 px-2 pt-4 text-xs">
-            <p class="font-semibold">{{ auth()->user()->name }}</p>
-            <p class="text-white/60">{{ auth()->user()->role->label() }}</p>
-            <button type="button" data-keluar class="mt-3 w-full rounded-lg bg-white/10 px-3 py-2 text-left text-white/80 hover:bg-white/20">Keluar</button>
+        <div class="mt-auto border-t border-white/10 px-2 pt-4">
+            <p class="truncate text-xs font-semibold">{{ auth()->user()->name }}</p>
+            <p class="text-[10px] capitalize text-white/50">{{ auth()->user()->role->value }}</p>
+            <button type="button" data-keluar class="mt-3 w-full rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white/80 transition hover:bg-white/10 hover:text-white">Keluar</button>
         </div>
     </aside>
 
@@ -50,14 +54,15 @@
 
     <div id="menu-admin-mobile" class="fixed inset-0 z-40 hidden bg-tinta/60 lg:hidden" hidden>
         <div class="h-full w-64 bg-tinta p-5 text-white">
-            <div class="mb-6 flex items-center gap-3">
-                <span class="judul block text-lg">Royal Hotel</span>
-                <span class="text-[10px] text-emas">Admin</span>
-            </div>
+            <span class="judul mb-6 block text-lg">Royal Hotel</span>
             @foreach ($menu as [$nama, $tautan, $kunci])
-                <a href="{{ $tautan }}" class="block rounded-lg px-3 py-2.5 text-sm {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold text-white' : 'text-white/70 hover:bg-white/5' }}">{{ $nama }}</a>
+                @if ($tautan)
+                    <a href="{{ $tautan }}" class="block rounded-lg px-3 py-2.5 text-sm {{ ($menuAktif ?? '') === $kunci ? 'bg-emas font-semibold' : 'text-white/70' }}">{{ $nama }}</a>
+                @else
+                    <span class="block px-3 py-2.5 text-sm text-white/35">{{ $nama }}</span>
+                @endif
             @endforeach
-            <button type="button" data-keluar class="mt-4 block w-full rounded-lg bg-white/10 px-3 py-2.5 text-left text-sm text-white/80 hover:bg-white/20">⟵ Keluar ({{ auth()->user()->name }})</button>
+            <button type="button" data-keluar class="mt-4 w-full rounded-lg border border-white/20 px-3 py-2.5 text-sm text-white/80">Keluar</button>
         </div>
     </div>
 
