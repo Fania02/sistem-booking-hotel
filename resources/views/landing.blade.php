@@ -23,21 +23,32 @@
                 </div>
             </div>
 
-            {{-- Hero slideshow --}}
-            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8 relative overflow-hidden rounded-3xl">
-                <div id="hero-slideshow" class="relative aspect-[4/3] h-full w-full rounded-xl overflow-hidden md:aspect-auto md:min-h-72">
-                    @foreach (['hero-1.jpg','hero-2.jpg','hero-3.jpg'] as $i => $foto)
-                        <img src="{{ asset('images/'.$foto) }}"
-                             alt="Royal Hotel foto {{ $i+1 }}"
-                             class="hero-slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 {{ $i === 0 ? 'opacity-100' : 'opacity-0' }}"
-                             data-slide="{{ $i }}">
+            {{-- Hero slideshow: foto bergantian otomatis, bisa diklik/digeser --}}
+            <div class="order-1 bg-kopi p-4 md:order-2 md:p-8">
+                <div id="hero-slideshow" data-parallax class="relative aspect-[4/3] h-full w-full overflow-hidden rounded-xl bg-kopi md:aspect-auto md:min-h-80" aria-roledescription="carousel">
+                    @foreach (config('foto.hero') as $i => $slide)
+                        <figure class="hero-slide absolute inset-0 {{ $i === 0 ? 'is-aktif' : '' }}" data-parallax-lapis="14">
+                            <img src="{{ $slide['url'] }}" alt="{{ $slide['alt'] }}" class="h-full w-full scale-110 object-cover"
+                                 loading="{{ $i === 0 ? 'eager' : 'lazy' }}" draggable="false">
+                            <figcaption class="hero-teks absolute inset-x-0 bottom-0 bg-gradient-to-t from-tinta/80 to-transparent px-5 pb-9 pt-16 text-xs font-medium tracking-wide text-white">
+                                {{ $slide['judul'] }}
+                            </figcaption>
+                        </figure>
                     @endforeach
-                    {{-- Dots indicator --}}
-                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                        @foreach ([0,1,2] as $d)
-                            <button type="button" class="slide-dot size-1.5 rounded-full bg-white/50 transition-all" data-dot="{{ $d }}" aria-label="Slide {{ $d+1 }}"></button>
+
+                    <button type="button" id="slide-prev" class="slide-panah absolute left-3 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-tinta/55 text-white backdrop-blur hover:bg-tinta" aria-label="Foto sebelumnya">
+                        <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+                    </button>
+                    <button type="button" id="slide-next" class="slide-panah absolute right-3 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-tinta/55 text-white backdrop-blur hover:bg-tinta" aria-label="Foto berikutnya">
+                        <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>
+                    </button>
+
+                    <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
+                        @foreach (config('foto.hero') as $d => $_)
+                            <button type="button" class="slide-dot rounded-full {{ $d === 0 ? 'is-aktif' : '' }}" aria-label="Foto {{ $d + 1 }}"></button>
                         @endforeach
                     </div>
+                    <div class="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-white/20"><div class="slide-progress h-full bg-emas"></div></div>
                 </div>
             </div>
         </div>
@@ -79,7 +90,7 @@
             ['Bayar Mudah', 'Pembayaran dicatat dan dipantau oleh resepsionis.'],
             ['Fasilitas Dasar', 'Wi-Fi, AC, dan sarapan tersedia di tiap kamar.'],
         ] as [$judul, $isi])
-            <div class="kartu p-4">
+            <div class="kartu p-4" data-reveal data-tilt>
                 <h3 class="text-[11px] font-semibold">{{ $judul }}</h3>
                 <p class="mt-1 text-[10px] leading-relaxed text-redam">{{ $isi }}</p>
             </div>
@@ -116,12 +127,10 @@
 
     {{-- Fasilitas --}}
     <section id="fasilitas" class="mt-20 grid scroll-mt-20 items-center gap-8 md:grid-cols-[1.1fr_1fr]">
-        <div class="relative aspect-[4/3] rounded-3xl overflow-hidden group">
-            <img src="{{ asset('images/fasilitas.jpg') }}" alt="Fasilitas Royal Hotel"
-                 class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
-            <div class="absolute inset-0 bg-gradient-to-t from-tinta/40 to-transparent"></div>
+        <div class="group-foto relative aspect-[4/3] overflow-hidden rounded-3xl" data-reveal>
+            <img src="{{ config('foto.fasilitas') }}" alt="Fasilitas Royal Hotel" class="zoom-foto h-full w-full object-cover" loading="lazy">
         </div>
-        <div>
+        <div data-reveal>
             <p class="eyebrow">Fasilitas</p>
             <h2 class="judul mt-1 text-2xl md:text-3xl">Lebih dari sekadar kamar</h2>
             <div class="mt-4 flex flex-wrap gap-2">
@@ -146,7 +155,7 @@
                 ['02', 'Isi data diri', 'Masukkan nama, NIK 16 digit, dan nomor HP tamu.'],
                 ['03', 'Terima kode booking', 'Simpan kode booking dan tunjukkan saat check-in.'],
             ] as [$nomor, $judul, $isi])
-                <div class="kartu p-5">
+                <div class="kartu p-5" data-reveal data-tilt>
                     <span class="judul text-xl text-emas">{{ $nomor }}</span>
                     <h3 class="mt-2 text-xs font-semibold">{{ $judul }}</h3>
                     <p class="mt-1 text-[11px] leading-relaxed text-redam">{{ $isi }}</p>
@@ -156,7 +165,7 @@
     </section>
 
     {{-- CTA --}}
-    <section id="kontak" class="mt-16 flex flex-col items-start justify-between gap-4 rounded-3xl bg-tinta px-7 py-8 text-white md:flex-row md:items-center md:px-10">
+    <section id="kontak" data-reveal class="mt-16 flex flex-col items-start justify-between gap-4 rounded-3xl bg-tinta px-7 py-8 text-white md:flex-row md:items-center md:px-10">
         <div>
             <h2 class="judul text-2xl">Siap menginap bersama kami?</h2>
             <p class="mt-1 text-xs text-white/60">Booking dalam hitungan menit, tanpa ribet.</p>

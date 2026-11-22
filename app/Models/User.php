@@ -7,33 +7,38 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'nik', 'no_hp'])]
+// 'role' sengaja TIDAK di-fillable agar tidak bisa diisi lewat form (mencegah user jadi admin).
+#[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'role'              => Peran::class,
+            'password' => 'hashed',
+            'role' => Peran::class,
         ];
     }
 
-    /** Apakah user ini termasuk staf hotel (admin / resepsionis)? */
     public function adalahStaf(): bool
     {
-        return in_array($this->role, Peran::staf(), true);
+        return $this->role?->adalahStaf() ?? false;
     }
 
-    public function adalahAdmin(): bool
+    /** Data tamu (NIK, no HP, dst.) milik akun ini. */
+    public function tamu(): HasOne
     {
-        return $this->role === Peran::Admin;
+        return $this->hasOne(Tamu::class);
     }
 }

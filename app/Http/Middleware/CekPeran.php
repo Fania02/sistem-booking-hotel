@@ -6,23 +6,22 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class CekPeran
+/** Pemakaian: ->middleware('peran:admin,resepsionis') */
+class PeranDiizinkan
 {
-    /**
-     * Izinkan akses hanya jika role user cocok dengan salah satu $peran yang diberikan.
-     * Contoh penggunaan di route: middleware('peran:admin,resepsionis')
-     */
     public function handle(Request $request, Closure $next, string ...$peran): Response
     {
         $user = $request->user();
 
-        if (! $user || ! in_array($user->role?->value, $peran, true)) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Akses ditolak.'], 403);
-            }
-            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk halaman ini.');
+        if ($user && in_array($user->role?->value, $peran, true)) {
+            return $next($request);
         }
 
-        return $next($request);
+        // Tamu yang salah masuk ke area admin dikembalikan ke halamannya sendiri.
+        if ($user && ! $request->expectsJson()) {
+            return redirect()->route($user->adalahStaf() ? 'admin.dashboard' : 'tamu.dashboard');
+        }
+
+        abort(403, 'Anda tidak punya akses ke halaman ini.');
     }
 }

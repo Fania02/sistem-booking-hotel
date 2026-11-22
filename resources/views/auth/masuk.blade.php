@@ -8,7 +8,7 @@
 
     {{-- Sisi kiri: foto hotel --}}
     <div class="relative hidden overflow-hidden md:block">
-        <img src="{{ asset('images/hero-1.jpg') }}" alt="Royal Hotel"
+        <img src="{{ config('foto.auth') }}" alt="Royal Hotel"
              class="h-full w-full object-cover">
         <div class="absolute inset-0 bg-gradient-to-r from-tinta/70 to-tinta/30 flex flex-col justify-end p-10 text-white">
             <span class="inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium tracking-wide text-pasir mb-4 w-fit">

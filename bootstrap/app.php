@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\PeranDiizinkan;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,9 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'peran' => \App\Http\Middleware\CekPeran::class,
-        ]);
+        $middleware->alias(['peran' => PeranDiizinkan::class]);
+
+        // Pengguna yang sudah login tapi membuka /masuk dialihkan ke halamannya.
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->adalahStaf()
+            ? route('admin.dashboard')
+            : route('tamu.dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

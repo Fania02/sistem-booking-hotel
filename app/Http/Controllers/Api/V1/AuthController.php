@@ -8,92 +8,79 @@ use App\Models\Tamu;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /** Login: kembalikan data user + flag apakah staf */
     public function login(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'email'    => ['required', 'email'],
+        $kredensial = $request->validate([
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($data, true)) {
-            throw ValidationException::withMessages([
-                'email' => 'Email atau password salah.',
-            ]);
+        if (! Auth::attempt($kredensial, $request->boolean('ingat'))) {
+            throw ValidationException::withMessages(['email' => 'Email atau password salah.']);
         }
 
-        $user = Auth::user();
         $request->session()->regenerate();
 
-        return response()->json([
-            'data' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role?->value,
-                'staf'  => $user->adalahStaf(),
-            ],
-        ]);
+        return response()->json(['data' => $this->ringkas($request->user())]);
     }
 
-    /** Registrasi tamu baru — otomatis buat baris di tabel tamu */
     public function registrasi(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'                  => ['required', 'string', 'max:255'],
-            'email'                 => ['required', 'email', 'unique:users,email'],
-            'nik'                   => ['nullable', 'digits:16'],
-            'no_hp'                 => ['nullable', 'string', 'max:20'],
-            'alamat'                => ['nullable', 'string'],
-            'password'              => ['required', 'confirmed', Password::min(8)],
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'nik' => ['required', 'digits:16', 'unique:tamu,nik'],
+            'no_hp' => ['required', 'string', 'max:15'],
+            'alamat' => ['nullable', 'string', 'max:1000'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
-            'role'     => Peran::Tamu,
-        ]);
+        $user = DB::transaction(function () use ($data): User {
+            $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+            $user->role = Peran::Tamu;
+            $user->save();
 
-        // Buat data tamu yang terhubung dengan akun ini
-        Tamu::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'nama'   => $data['name'],
-                'nik'    => $data['nik'] ?? null,
-                'no_hp'  => $data['no_hp'] ?? null,
-                'alamat' => $data['alamat'] ?? null,
-            ]
-        );
+            Tamu::create([
+                'user_id' => $user->id,
+                'nama' => $data['name'],
+                'nik' => $data['nik'],
+                'no_hp' => $data['no_hp'],
+                'alamat' => $data['alamat'] ?? '',
+            ]);
+
+            return $user;
+        });
 
         Auth::login($user);
         $request->session()->regenerate();
 
-        return response()->json([
-            'data' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role?->value,
-                'staf'  => false,
-            ],
-        ], 201);
+        return response()->json(['data' => $this->ringkas($user)], 201);
     }
 
-    /** Logout: hapus sesi */
-    public function logout(Request $request): Response
+    public function logout(Request $request): JsonResponse
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->noContent();
+        return response()->json(['data' => null]);
+    }
+
+    /** @return array{id: int, name: string, email: string, peran: string, staf: bool} */
+    private function ringkas(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'peran' => $user->role->value,
+            'staf' => $user->adalahStaf(),
+        ];
     }
 }
