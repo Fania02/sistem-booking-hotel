@@ -2,13 +2,11 @@ import { api } from '../lib/api';
 import { escapeHtml, formatRupiah } from '../lib/format';
 import { $, $$, bersihkanError, denganLoading, tampilkanError, toast } from '../lib/ui';
 
-const FASILITAS_AWAL = ['Wi-Fi', 'AC', 'TV', 'Kolam renang', 'Spa', 'Sarapan'];
-const PESAN_BELUM_ADA = 'Endpoint API untuk ini belum dibuat oleh tim backend, jadi data belum bisa disimpan.';
-
 const state = {
+    daftarTamu: [],
     sedangUbah: null, // id tamu yang sedang diedit
-    fasilitas: [...FASILITAS_AWAL],
-    fasilitasDipilih: new Set(['Wi-Fi', 'AC']),
+    fasilitas: [], // { id, nama, ... } dari API /fasilitas
+    fasilitasDipilih: new Set(), // kumpulan id fasilitas (number)
 };
 
 /* ---------- Tamu ---------- */
@@ -23,7 +21,7 @@ function renderTamu(daftar) {
             <td class="px-3 py-2.5 text-redam">${escapeHtml(t.nik)}</td>
             <td class="px-3 py-2.5 text-redam">${escapeHtml(t.no_hp)}</td>
             <td class="py-2.5 pl-3 text-right">
-                <button type="button" class="font-semibold text-emas-tua hover:underline" data-ubah='${escapeHtml(JSON.stringify(t))}'>Ubah</button>
+                <button type="button" class="font-semibold text-emas-tua hover:underline" data-ubah-id="${t.id}">Ubah</button>
                 <button type="button" class="ml-3 font-semibold text-red-700 hover:underline" data-hapus="${t.id}">Hapus</button>
             </td>
         </tr>`,
@@ -33,7 +31,9 @@ function renderTamu(daftar) {
 
 async function muatTamu(cari = '') {
     try {
-        renderTamu((await api.get('/tamu', { search: cari, per_page: 50 })).data);
+        const { data } = await api.get('/tamu', { search: cari, per_page: 50 });
+        state.daftarTamu = data;
+        renderTamu(data);
     } catch (error) {
         toast(error.message, 'error');
     }
@@ -77,10 +77,12 @@ async function simpanTamu(event) {
 function mulaiUbah(tamu) {
     const form = $('#form-tamu');
     state.sedangUbah = tamu.id;
-    form.nama.value = tamu.nama;
-    form.nik.value = tamu.nik;
-    form.no_hp.value = tamu.no_hp;
-    form.alamat.value = tamu.alamat ?? '';
+    form.nama.value = tamu.nama ?? '';
+    form.nik.value = tamu.nik ?? '';
+    form.no_hp.value = tamu.no_hp ?? '';
+    if (form.alamat) {
+        form.alamat.value = tamu.alamat ?? '';
+    }
     $('#judul-form-tamu').textContent = 'Ubah Data Tamu';
     $('#tombol-simpan-tamu').textContent = 'Simpan Perubahan';
     perbaruiHitungNik();
@@ -105,12 +107,30 @@ async function hapusTamu(id) {
 /* ---------- Tipe kamar & fasilitas ---------- */
 
 function renderPilihFasilitas() {
-    $('#pilih-fasilitas').innerHTML = state.fasilitas
+    const wadah = $('#pilih-fasilitas');
+    if (!wadah) return;
+
+    if (!state.fasilitas.length) {
+        wadah.innerHTML = '<span class="text-xs text-redam">Belum ada fasilitas.</span>';
+        return;
+    }
+
+    wadah.innerHTML = state.fasilitas
         .map(
-            (nama) =>
-                `<button type="button" class="chip-pilih" data-fasilitas="${escapeHtml(nama)}" aria-pressed="${state.fasilitasDipilih.has(nama)}">${escapeHtml(nama)}</button>`,
+            (f) =>
+                `<button type="button" class="chip-pilih" data-fasilitas-id="${f.id}" aria-pressed="${state.fasilitasDipilih.has(Number(f.id))}">${escapeHtml(f.nama)}</button>`,
         )
         .join('');
+}
+
+async function muatFasilitas() {
+    try {
+        const { data } = await api.get('/fasilitas');
+        state.fasilitas = data ?? [];
+        renderPilihFasilitas();
+    } catch (error) {
+        toast(error.message, 'error');
+    }
 }
 
 async function muatTipe() {
@@ -134,28 +154,53 @@ function formatHargaSaatMengetik(event) {
     event.target.value = angka ? formatRupiah(Number(angka)) : '';
 }
 
-function tolakBelumAda(event) {
+async function simpanFasilitas(event) {
     event.preventDefault();
     const form = event.currentTarget;
     bersihkanError(form);
 
-    if (form.id === 'form-fasilitas') {
-        const nama = form.nama.value.trim();
+    const nama = form.nama?.value.trim() ?? '';
+    const tombol = $('button[type="submit"]', form);
 
-        if (!nama) {
-            return tampilkanError(form, { status: 422, errors: { nama: ['Nama fasilitas wajib diisi.'] }, message: '' });
-        }
-
-        // Fasilitas hanya ditambahkan ke pilihan di halaman ini (belum tersimpan ke server).
-        if (!state.fasilitas.includes(nama)) {
-            state.fasilitas.push(nama);
-            renderPilihFasilitas();
-        }
-
+    try {
+        const { data } = await denganLoading(tombol, () => api.post('/fasilitas', { nama }));
         form.reset();
+        if (data?.id) {
+            state.fasilitasDipilih.add(Number(data.id));
+        }
+        toast('Fasilitas baru disimpan.');
+        await muatFasilitas();
+    } catch (error) {
+        tampilkanError(form, error);
     }
+}
 
-    toast(PESAN_BELUM_ADA, 'error');
+async function simpanTipe(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    bersihkanError(form);
+
+    const hargaAngka = Number(String(form.harga_per_malam?.value ?? '').replace(/\D/g, ''));
+    const payload = {
+        nama_tipe: form.nama_tipe?.value.trim() ?? '',
+        harga_per_malam: hargaAngka,
+        kapasitas: Number(form.kapasitas?.value ?? 1),
+        deskripsi: form.deskripsi?.value.trim() || null,
+        fasilitas_ids: [...state.fasilitasDipilih],
+    };
+
+    const tombol = $('button[type="submit"]', form);
+
+    try {
+        await denganLoading(tombol, () => api.post('/tipe-kamar', payload));
+        form.reset();
+        state.fasilitasDipilih.clear();
+        renderPilihFasilitas();
+        toast('Tipe kamar baru disimpan.');
+        muatTipe();
+    } catch (error) {
+        tampilkanError(form, error);
+    }
 }
 
 function gantiSeksi(nama) {
@@ -167,7 +212,7 @@ function gantiSeksi(nama) {
 
 export function initTamu() {
     $('#form-tamu').addEventListener('submit', simpanTamu);
-    $('#tombol-batal-tamu').addEventListener('click', resetFormTamu);
+    $('#tombol-batal-tamu')?.addEventListener('click', resetFormTamu);
     $('#t-nik').addEventListener('input', (event) => {
         event.target.value = event.target.value.replace(/\D/g, '').slice(0, 16);
         perbaruiHitungNik();
@@ -180,42 +225,38 @@ export function initTamu() {
     });
 
     $('#tabel-tamu').addEventListener('click', (event) => {
-        const ubah = event.target.closest('[data-ubah]');
-        const hapus = event.target.closest('[data-hapus]');
+        const ubahBtn = event.target.closest('[data-ubah-id]');
+        const hapusBtn = event.target.closest('[data-hapus]');
 
-        if (ubah) {
-            mulaiUbah(JSON.parse(ubah.dataset.ubah));
-        } else if (hapus) {
-            hapusTamu(hapus.dataset.hapus);
+        if (ubahBtn) {
+            const id = Number(ubahBtn.dataset.ubahId);
+            const tamu = state.daftarTamu.find((item) => item.id === id);
+            if (tamu) mulaiUbah(tamu);
+        } else if (hapusBtn) {
+            hapusTamu(hapusBtn.dataset.hapus);
         }
     });
 
-    $('#pilih-fasilitas').addEventListener('click', (event) => {
-        const chip = event.target.closest('[data-fasilitas]');
+    $('#pilih-fasilitas')?.addEventListener('click', (event) => {
+        const chip = event.target.closest('[data-fasilitas-id]');
+        if (!chip) return;
 
-        if (!chip) {
-            return;
-        }
-
-        const nama = chip.dataset.fasilitas;
-        state.fasilitasDipilih.has(nama) ? state.fasilitasDipilih.delete(nama) : state.fasilitasDipilih.add(nama);
+        const id = Number(chip.dataset.fasilitasId);
+        state.fasilitasDipilih.has(id) ? state.fasilitasDipilih.delete(id) : state.fasilitasDipilih.add(id);
         renderPilihFasilitas();
     });
 
-    $('#tp-harga').addEventListener('input', formatHargaSaatMengetik);
-    $('#form-tipe').addEventListener('submit', tolakBelumAda);
-    $('#form-fasilitas').addEventListener('submit', tolakBelumAda);
-    $('#tab-master').addEventListener('click', (event) => {
+    $('#tp-harga')?.addEventListener('input', formatHargaSaatMengetik);
+    $('#form-tipe')?.addEventListener('submit', simpanTipe);
+    $('#form-fasilitas')?.addEventListener('submit', simpanFasilitas);
+    $('#tab-master')?.addEventListener('click', (event) => {
         const tombol = event.target.closest('[data-seksi-tombol]');
-
-        if (tombol) {
-            gantiSeksi(tombol.dataset.seksiTombol);
-        }
+        if (tombol) gantiSeksi(tombol.dataset.seksiTombol);
     });
 
-    renderPilihFasilitas();
     perbaruiHitungNik();
     muatTamu();
+    muatFasilitas();
     muatTipe();
     gantiSeksi('tamu');
 }

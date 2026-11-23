@@ -1,11 +1,14 @@
 import { api } from '../lib/api';
 import { escapeHtml, formatRupiah, formatTanggal } from '../lib/format';
-import { $, $$, bersihkanError, denganLoading, tampilkanError, toast } from '../lib/ui';
+import { $, $$, denganLoading, toast } from '../lib/ui';
 
 const state = {
     reservasi: [],
     tabAktif: 'semua',
 };
+
+const nilaiStatus = (val) => (val && typeof val === 'object' ? val.value : val) ?? '';
+const labelStatus = (val, fallback = '-') => (val && typeof val === 'object' ? val.label : val) ?? fallback;
 
 /* ---------- Badge status ---------- */
 
@@ -13,46 +16,64 @@ const WARNA_STATUS = {
     menunggu:     'bg-amber-100 text-amber-800',
     dikonfirmasi: 'bg-blue-100 text-blue-800',
     checkin:      'bg-green-100 text-green-800',
-    checkout:     'bg-gray-100 text-gray-700',
     selesai:      'bg-pasir text-kopi',
-    dibatalkan:   'bg-red-100 text-red-700',
-};
-
-const LABEL_STATUS = {
-    menunggu:     'Menunggu',
-    dikonfirmasi: 'Dikonfirmasi',
-    checkin:      'Check-in',
-    checkout:     'Check-out',
-    selesai:      'Selesai',
-    dibatalkan:   'Dibatalkan',
+    batal:        'bg-red-100 text-red-700',
 };
 
 const WARNA_BAYAR = {
-    belum_bayar: 'bg-red-100 text-red-700',
+    belum_bayar:         'bg-red-100 text-red-700',
+    dp:                  'bg-amber-100 text-amber-800',
     menunggu_verifikasi: 'bg-amber-100 text-amber-800',
-    lunas: 'bg-green-100 text-green-800',
+    lunas:               'bg-green-100 text-green-800',
 };
 
 function badgeStatus(status) {
-    const warna = WARNA_STATUS[status] ?? 'bg-gray-100 text-gray-700';
-    return `<span class="badge ${warna}">${escapeHtml(LABEL_STATUS[status] ?? status)}</span>`;
+    const kode = nilaiStatus(status);
+    const warna = WARNA_STATUS[kode] ?? 'bg-gray-100 text-gray-700';
+    return `<span class="badge ${warna}">${escapeHtml(labelStatus(status))}</span>`;
 }
 
 function badgeBayar(status) {
-    const warna = WARNA_BAYAR[status] ?? 'bg-gray-100 text-gray-700';
-    const label = status === 'belum_bayar' ? 'Belum Bayar'
-                : status === 'menunggu_verifikasi' ? 'Menunggu Verifikasi'
-                : 'Lunas';
-    return `<span class="badge ${warna}">${label}</span>`;
+    const kode = nilaiStatus(status);
+    const warna = WARNA_BAYAR[kode] ?? 'bg-gray-100 text-gray-700';
+    return `<span class="badge ${warna}">${escapeHtml(labelStatus(status, 'Belum Bayar'))}</span>`;
+}
+
+function formatKamarTamu(r) {
+    const daftar = Array.isArray(r.kamar) ? r.kamar : [];
+    if (!daftar.length) return { kamar: '-', tipe: '-' };
+
+    const namaKamar = daftar
+        .map((item) => {
+            const k = item.kamar ?? item;
+            return k.nomor_kamar ? `Kamar ${k.nomor_kamar}` : null;
+        })
+        .filter(Boolean)
+        .join(', ') || '-';
+
+    const pertama = daftar[0].kamar ?? daftar[0];
+    const tipe = pertama.tipe_kamar?.nama_tipe ?? '-';
+
+    return { kamar: namaKamar, tipe };
 }
 
 /* ---------- Render ---------- */
 
 function kartuReservasi(r) {
-    const bolehBayar   = r.status_pembayaran === 'belum_bayar' && !['dibatalkan','selesai'].includes(r.status);
-    const bolehBatal   = ['menunggu','dikonfirmasi'].includes(r.status);
-    const kamar        = r.kamar?.map(k => `Kamar ${k.nomor_kamar}`).join(', ') ?? '-';
-    const tipe         = r.kamar?.[0]?.tipe_kamar?.nama_tipe ?? '-';
+    const statusKode = nilaiStatus(r.status);
+    const bayarKode = nilaiStatus(r.status_pembayaran);
+    const sisaTagihan = Number(r.sisa_tagihan ?? r.total_harga ?? 0);
+
+    const bolehBayar = bayarKode !== 'lunas' && !['batal', 'selesai'].includes(statusKode) && sisaTagihan > 0;
+    const bolehBatal = ['menunggu', 'dikonfirmasi'].includes(statusKode);
+    const { kamar, tipe } = formatKamarTamu(r);
+
+    const payloadBatal = {
+        id: r.id,
+        kode: r.kode_booking,
+        tipe,
+        total: r.total_harga,
+    };
 
     return `
     <article class="kartu p-5 hover-kartu anim-fade">
@@ -67,21 +88,21 @@ function kartuReservasi(r) {
                     ${escapeHtml(tipe)} · ${escapeHtml(kamar)}
                 </p>
                 <p class="mt-1 text-[11px] text-redam">
-                    ${formatTanggal(r.tgl_checkin, { day:'2-digit', month:'short', year:'numeric' })}
+                    ${formatTanggal(r.tgl_checkin, { day: '2-digit', month: 'short', year: 'numeric' })}
                     –
-                    ${formatTanggal(r.tgl_checkout, { day:'2-digit', month:'short', year:'numeric' })}
+                    ${formatTanggal(r.tgl_checkout, { day: '2-digit', month: 'short', year: 'numeric' })}
                 </p>
             </div>
             <div class="text-right shrink-0">
                 <p class="text-sm font-semibold">${formatRupiah(r.total_harga)}</p>
-                <p class="mt-0.5 text-[11px] text-redam">${r.sumber ?? 'online'}</p>
+                <p class="mt-0.5 text-[11px] text-redam">${escapeHtml(labelStatus(r.sumber, 'online'))}</p>
             </div>
         </div>
 
         ${bolehBayar || bolehBatal ? `
         <div class="mt-4 flex flex-wrap gap-2 border-t border-garis pt-4">
             ${bolehBayar ? `<button type="button" class="btn-emas !text-[11px] !px-4 !py-2 hover-btn" data-aksi-upload="${r.id}">📎 Upload Bukti Bayar</button>` : ''}
-            ${bolehBatal ? `<button type="button" class="btn-garis !text-[11px] !px-4 !py-2 text-red-700 border-red-200 hover:bg-red-50" data-aksi-batal='${escapeHtml(JSON.stringify({ id: r.id, kode: r.kode_booking, tipe, total: r.total_harga }))}'>Ajukan Pembatalan</button>` : ''}
+            ${bolehBatal ? `<button type="button" class="btn-garis !text-[11px] !px-4 !py-2 text-red-700 border-red-200 hover:bg-red-50" data-aksi-batal='${escapeHtml(JSON.stringify(payloadBatal))}'>Ajukan Pembatalan</button>` : ''}
         </div>` : ''}
     </article>`;
 }
@@ -89,20 +110,19 @@ function kartuReservasi(r) {
 function renderRiwayat() {
     const daftar = state.tabAktif === 'semua'
         ? state.reservasi
-        : state.reservasi.filter(r => r.status === state.tabAktif);
+        : state.reservasi.filter((r) => nilaiStatus(r.status) === state.tabAktif);
 
     $('#loading-riwayat').hidden = true;
-    $('#kosong-riwayat').hidden  = daftar.length > 0;
+    $('#kosong-riwayat').hidden = daftar.length > 0;
     $('#daftar-riwayat').innerHTML = daftar.map(kartuReservasi).join('');
 
-    // trigger fade-in
-    setTimeout(() => $$('.anim-fade').forEach(el => el.classList.add('anim-visible')), 50);
+    setTimeout(() => $$('.anim-fade').forEach((el) => el.classList.add('anim-visible')), 50);
 }
 
 async function muatRiwayat() {
     try {
-        const { data } = await api.get('/reservasi/saya');
-        state.reservasi = data;
+        const { data } = await api.get('/saya/reservasi');
+        state.reservasi = data ?? [];
         renderRiwayat();
     } catch (err) {
         $('#loading-riwayat').hidden = true;
@@ -113,28 +133,39 @@ async function muatRiwayat() {
 /* ---------- Upload bukti bayar ---------- */
 
 function bukaModalBukti(reservasiId) {
+    const item = state.reservasi.find((r) => Number(r.id) === Number(reservasiId));
     $('#bukti-reservasi-id').value = reservasiId;
     $('#form-bukti').reset();
     $('#bukti-nama-file').textContent = '';
+
+    const inputJumlah = $('#bukti-jumlah');
+    if (inputJumlah && item) {
+        inputJumlah.value = item.sisa_tagihan ?? item.total_harga ?? '';
+    }
+
     $('#modal-bukti').showModal();
 }
 
 async function kirimBukti(e) {
     e.preventDefault();
     const reservasiId = $('#bukti-reservasi-id').value;
-    const file  = $('#bukti-file').files[0];
+    const file = $('#bukti-file').files[0];
     const metode = $('#bukti-metode').value;
+    const jumlah = $('#bukti-jumlah')?.value;
 
     if (!file) return toast('Pilih file bukti pembayaran terlebih dahulu.', 'error');
 
     const formData = new FormData();
-    formData.append('bukti_pembayaran', file);
-    formData.append('metode_pembayaran', metode);
+    formData.append('bukti_bayar', file);
+    formData.append('metode', metode);
+    if (jumlah) {
+        formData.append('jumlah_bayar', jumlah);
+    }
 
     const tombol = $('button[type="submit"]', $('#form-bukti'));
     try {
-        await denganLoading(tombol, () => api.postForm(`/pembayaran/${reservasiId}/bukti`, formData));
-        toast('Bukti pembayaran berhasil diunggah! Menunggu verifikasi admin.');
+        await denganLoading(tombol, () => api.postForm(`/saya/reservasi/${reservasiId}/pembayaran`, formData));
+        toast('Bukti pembayaran berhasil diunggah! Menunggu verifikasi petugas.');
         $('#modal-bukti').close();
         muatRiwayat();
     } catch (err) {
@@ -158,14 +189,16 @@ function bukaModalBatal(data) {
 
 async function kirimPembatalan(e) {
     e.preventDefault();
-    const id     = $('#batal-reservasi-id').value;
+    const id = $('#batal-reservasi-id').value;
     const alasan = $('#batal-alasan').value.trim();
 
-    if (!alasan) return toast('Isi alasan pembatalan terlebih dahulu.', 'error');
+    if (alasan.length < 5) {
+        return toast('Isi alasan pembatalan minimal 5 karakter.', 'error');
+    }
 
     const tombol = $('button[type="submit"]', $('#form-batal'));
     try {
-        await denganLoading(tombol, () => api.post(`/pembatalan`, { reservasi_id: id, alasan_pembatalan: alasan }));
+        await denganLoading(tombol, () => api.post(`/saya/reservasi/${id}/pembatalan`, { alasan }));
         toast('Permintaan pembatalan berhasil dikirim.');
         $('#modal-batal').close();
         muatRiwayat();
@@ -177,51 +210,56 @@ async function kirimPembatalan(e) {
 /* ---------- Drag & drop ---------- */
 
 function initDropZone() {
-    const zone  = $('#drop-zone');
+    const zone = $('#drop-zone');
     const input = $('#bukti-file');
-    const nama  = $('#bukti-nama-file');
+    const nama = $('#bukti-nama-file');
 
     if (!zone) return;
 
-    ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('border-emas','bg-pasir/40'); }));
-    ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, () => zone.classList.remove('border-emas','bg-pasir/40')));
+    ['dragover', 'dragenter'].forEach((ev) =>
+        zone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            zone.classList.add('border-emas', 'bg-pasir/40');
+        }),
+    );
+    ['dragleave', 'drop'].forEach((ev) =>
+        zone.addEventListener(ev, () => zone.classList.remove('border-emas', 'bg-pasir/40')),
+    );
 
-    zone.addEventListener('drop', e => {
+    zone.addEventListener('drop', (e) => {
         e.preventDefault();
         input.files = e.dataTransfer.files;
         nama.textContent = input.files[0]?.name ?? '';
     });
 
-    input.addEventListener('change', () => { nama.textContent = input.files[0]?.name ?? ''; });
+    input.addEventListener('change', () => {
+        nama.textContent = input.files[0]?.name ?? '';
+    });
 }
 
 /* ---------- Init ---------- */
 
 export function initTamuDashboard() {
-    // Tab
-    $('#tab-riwayat').addEventListener('click', e => {
+    $('#tab-riwayat').addEventListener('click', (e) => {
         const tombol = e.target.closest('[data-tab-riwayat]');
         if (!tombol) return;
-        $$('[data-tab-riwayat]').forEach(t => t.setAttribute('aria-pressed', 'false'));
+        $$('[data-tab-riwayat]').forEach((t) => t.setAttribute('aria-pressed', 'false'));
         tombol.setAttribute('aria-pressed', 'true');
         state.tabAktif = tombol.dataset.tabRiwayat;
         renderRiwayat();
     });
 
-    // Aksi di kartu
-    document.addEventListener('click', e => {
+    document.addEventListener('click', (e) => {
         const upload = e.target.closest('[data-aksi-upload]');
-        const batal  = e.target.closest('[data-aksi-batal]');
+        const batal = e.target.closest('[data-aksi-batal]');
         if (upload) bukaModalBukti(upload.dataset.aksiUpload);
-        if (batal)  bukaModalBatal(JSON.parse(batal.dataset.aksiBatal));
+        if (batal) bukaModalBatal(JSON.parse(batal.dataset.aksiBatal));
     });
 
-    // Modal bukti
-    $$('[data-tutup-bukti]').forEach(el => el.addEventListener('click', () => $('#modal-bukti').close()));
+    $$('[data-tutup-bukti]').forEach((el) => el.addEventListener('click', () => $('#modal-bukti').close()));
     $('#form-bukti').addEventListener('submit', kirimBukti);
 
-    // Modal batal
-    $$('[data-tutup-batal]').forEach(el => el.addEventListener('click', () => $('#modal-batal').close()));
+    $$('[data-tutup-batal]').forEach((el) => el.addEventListener('click', () => $('#modal-batal').close()));
     $('#form-batal').addEventListener('submit', kirimPembatalan);
 
     initDropZone();

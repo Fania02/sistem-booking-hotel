@@ -25,15 +25,22 @@ function bentukQuery(params = {}) {
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 async function kirim(method, path, { params, body } = {}) {
+    const isFormData = body instanceof FormData;
+
+    const headers = {
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrfToken(),
+    };
+
+    if (body && !isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(`${BASE}${path}${bentukQuery(params)}`, {
         method,
         credentials: 'same-origin',
-        headers: {
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-            ...(body ? { 'Content-Type': 'application/json' } : {}),
-        },
-        body: body ? JSON.stringify(body) : undefined,
+        headers,
+        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
 
     if (response.status === 204) {
@@ -62,5 +69,7 @@ export const api = {
     get: (path, params) => kirim('GET', path, { params }),
     post: (path, body) => kirim('POST', path, { body }),
     put: (path, body) => kirim('PUT', path, { body }),
+    patch: (path, body) => kirim('PATCH', path, { body }),
+    postForm: (path, formData) => kirim('POST', path, { body: formData }),
     delete: (path) => kirim('DELETE', path),
 };
