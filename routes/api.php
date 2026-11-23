@@ -179,8 +179,8 @@ Route::prefix('v1')
             // Fasilitas
             Route::apiResource('fasilitas', FasilitasController::class)
                 ->only(['store', 'update', 'destroy'])
-                ->parameters(['fasilitas' => 'fasilitas');
-
+                ->parameters(['fasilitas' => 'fasilitas']);
+                
             // Pengguna
             Route::apiResource('pengguna', PenggunaController::class)
                 ->parameters(['pengguna' => 'pengguna']);
