@@ -19,12 +19,16 @@ class ReservasiService
     /**
      * Membuat reservasi baru beserta kamar-kamarnya.
      *
-     * @param  array{tamu_id: int, tgl_checkin: string, tgl_checkout: string, sumber: string, kamar_ids: list<int>}  $data
+     * @param array{tamu_id: int, tgl_checkin: string, tgl_checkout: string, sumber: string, kamar_ids: list<int>} $data
      */
     public function buat(array $data, ?int $petugasId = null): Reservasi
     {
         return DB::transaction(function () use ($data, $petugasId): Reservasi {
-            $kamar = $this->kunciKamarTersedia($data['kamar_ids'], $data['tgl_checkin'], $data['tgl_checkout']);
+            $kamar = $this->kunciKamarTersedia(
+                $data['kamar_ids'],
+                $data['tgl_checkin'],
+                $data['tgl_checkout']
+            );
 
             $reservasi = Reservasi::create([
                 'tamu_id' => $data['tamu_id'],
@@ -48,7 +52,7 @@ class ReservasiService
      * Mengubah tamu, tanggal, dan/atau kamar pada reservasi yang masih aktif.
      * Kamar yang tetap dipakai mempertahankan harga lamanya.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public function ubah(Reservasi $reservasi, array $data): Reservasi
     {
@@ -59,10 +63,13 @@ class ReservasiService
         }
 
         return DB::transaction(function () use ($reservasi, $data): Reservasi {
-            $reservasi = Reservasi::query()->lockForUpdate()->findOrFail($reservasi->getKey());
+            $reservasi = Reservasi::query()
+                ->lockForUpdate()
+                ->findOrFail($reservasi->getKey());
 
             $masuk = $data['tgl_checkin'] ?? $reservasi->tgl_checkin->toDateString();
             $keluar = $data['tgl_checkout'] ?? $reservasi->tgl_checkout->toDateString();
+
             $adaPerubahanKamarAtauTanggal = isset($data['kamar_ids'])
                 || $masuk !== $reservasi->tgl_checkin->toDateString()
                 || $keluar !== $reservasi->tgl_checkout->toDateString();
@@ -70,21 +77,37 @@ class ReservasiService
             if (isset($data['tamu_id'])) {
                 $reservasi->tamu_id = $data['tamu_id'];
             }
+
             if (isset($data['sumber'])) {
                 $reservasi->sumber = $data['sumber'];
             }
+
             $reservasi->tgl_checkin = $masuk;
             $reservasi->tgl_checkout = $keluar;
             $reservasi->save();
 
             if ($adaPerubahanKamarAtauTanggal) {
-                $hargaLama = $reservasi->detail()->pluck('harga_per_malam', 'kamar_id');
+                $hargaLama = $reservasi->detail()
+                    ->pluck('harga_per_malam', 'kamar_id');
+
                 $kamarIds = $data['kamar_ids'] ?? $hargaLama->keys()->all();
 
-                $kamar = $this->kunciKamarTersedia($kamarIds, $masuk, $keluar, $reservasi->getKey());
+                $kamar = $this->kunciKamarTersedia(
+                    $kamarIds,
+                    $masuk,
+                    $keluar,
+                    $reservasi->getKey()
+                );
 
                 $reservasi->detail()->delete();
-                $kamar->each(fn (Kamar $item) => $reservasi->tambahKamar($item, $hargaLama->get($item->getKey())));
+
+                $kamar->each(
+                    fn (Kamar $item) => $reservasi->tambahKamar(
+                        $item,
+                        $hargaLama->get($item->getKey())
+                    )
+                );
+
                 $reservasi->hitungUlangTotal();
             }
 
@@ -93,15 +116,27 @@ class ReservasiService
     }
 
     /**
-     * Mengubah status reservasi sesuai alur: menunggu → dikonfirmasi → checkin → selesai,
-     * dan batal dari menunggu/dikonfirmasi.
+     * Mengubah status reservasi sesuai alur:
+     * menunggu → dikonfirmasi → checkin → selesai.
+     * Pembatalan dapat dilakukan dari menunggu/dikonfirmasi.
      *
-     * @param  array{waktu?: string|null, catatan?: string|null, alasan?: string|null}  $data
+     * @param array{waktu?: string|null, catatan?: string|null, alasan?: string|null} $data
      */
-    public function ubahStatus(Reservasi $reservasi, StatusReservasi $tujuan, array $data = [], ?int $petugasId = null): Reservasi
-    {
-        return DB::transaction(function () use ($reservasi, $tujuan, $data, $petugasId): Reservasi {
-            $reservasi = Reservasi::query()->lockForUpdate()->findOrFail($reservasi->getKey());
+    public function ubahStatus(
+        Reservasi $reservasi,
+        StatusReservasi $tujuan,
+        array $data = [],
+        ?int $petugasId = null
+    ): Reservasi {
+        return DB::transaction(function () use (
+            $reservasi,
+            $tujuan,
+            $data,
+            $petugasId
+        ): Reservasi {
+            $reservasi = Reservasi::query()
+                ->lockForUpdate()
+                ->findOrFail($reservasi->getKey());
 
             if (! $reservasi->status->bolehBerubahKe($tujuan)) {
                 throw ValidationException::withMessages([
@@ -109,7 +144,9 @@ class ReservasiService
                 ]);
             }
 
-            $waktu = isset($data['waktu']) ? CarbonImmutable::parse($data['waktu']) : now();
+            $waktu = isset($data['waktu'])
+                ? CarbonImmutable::parse($data['waktu'])
+                : now();
 
             match ($tujuan) {
                 StatusReservasi::Checkin => $reservasi->checkinCheckout()->updateOrCreate(
@@ -118,17 +155,25 @@ class ReservasiService
                         'waktu_checkin' => $waktu,
                         'diproses_checkin_oleh' => $petugasId,
                         'catatan' => $data['catatan'] ?? null,
-                    ],
+                    ]
                 ),
+
                 StatusReservasi::Selesai => $reservasi->checkinCheckout()->updateOrCreate(
                     ['reservasi_id' => $reservasi->getKey()],
                     array_filter([
                         'waktu_checkout' => $waktu,
                         'diproses_checkout_oleh' => $petugasId,
                         'catatan' => $data['catatan'] ?? null,
-                    ], fn ($nilai) => $nilai !== null),
+                    ], fn ($nilai) => $nilai !== null)
                 ),
-                StatusReservasi::Batal => $this->catatPembatalan($reservasi, $data, $waktu, $petugasId),
+
+                StatusReservasi::Batal => $this->catatPembatalan(
+                    $reservasi,
+                    $data,
+                    $waktu,
+                    $petugasId
+                ),
+
                 default => null,
             };
 
@@ -140,13 +185,18 @@ class ReservasiService
     }
 
     /**
-     * Mencatat pembatalan oleh petugas. Bila tamu sudah mengajukan pembatalan,
-     * pengajuan itulah yang disetujui (tidak membuat catatan ganda).
+     * Mencatat pembatalan oleh petugas.
+     * Jika tamu sudah mengajukan pembatalan,
+     * pengajuan tersebut akan diperbarui agar tidak terjadi catatan ganda.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
-    private function catatPembatalan(Reservasi $reservasi, array $data, \DateTimeInterface $waktu, ?int $petugasId): void
-    {
+    private function catatPembatalan(
+        Reservasi $reservasi,
+        array $data,
+        \DateTimeInterface $waktu,
+        ?int $petugasId
+    ): void {
         $hasil = [
             'status' => StatusPembatalan::Disetujui,
             'diproses_oleh' => $petugasId,
@@ -154,7 +204,10 @@ class ReservasiService
             'catatan_petugas' => $data['catatan'] ?? null,
         ];
 
-        $pengajuan = $reservasi->pembatalan()->where('status', StatusPembatalan::Diajukan->value)->latest('id')->first();
+        $pengajuan = $reservasi->pembatalan()
+            ->where('status', StatusPembatalan::Diajukan->value)
+            ->latest('id')
+            ->first();
 
         if ($pengajuan !== null) {
             $pengajuan->update($hasil);
@@ -170,22 +223,40 @@ class ReservasiService
     }
 
     /**
-     * Memproses pengajuan pembatalan dari tamu: disetujui (reservasi menjadi batal) atau ditolak.
+     * Memproses pengajuan pembatalan dari tamu:
+     * disetujui atau ditolak.
      */
-    public function prosesPembatalan(Pembatalan $pembatalan, StatusPembatalan $tujuan, ?int $petugasId, ?string $catatan = null): Pembatalan
-    {
+    public function prosesPembatalan(
+        Pembatalan $pembatalan,
+        StatusPembatalan $tujuan,
+        ?int $petugasId,
+        ?string $catatan = null
+    ): Pembatalan {
         if ($tujuan === StatusPembatalan::Diajukan) {
-            throw ValidationException::withMessages(['status' => 'Pilih disetujui atau ditolak.']);
+            throw ValidationException::withMessages([
+                'status' => 'Pilih disetujui atau ditolak.',
+            ]);
         }
 
-        return DB::transaction(function () use ($pembatalan, $tujuan, $petugasId, $catatan): Pembatalan {
-            $pembatalan = Pembatalan::query()->lockForUpdate()->findOrFail($pembatalan->getKey());
+        return DB::transaction(function () use (
+            $pembatalan,
+            $tujuan,
+            $petugasId,
+            $catatan
+        ): Pembatalan {
+            $pembatalan = Pembatalan::query()
+                ->lockForUpdate()
+                ->findOrFail($pembatalan->getKey());
 
             if ($pembatalan->status !== StatusPembatalan::Diajukan) {
-                throw ValidationException::withMessages(['status' => 'Pengajuan ini sudah diproses.']);
+                throw ValidationException::withMessages([
+                    'status' => 'Pengajuan ini sudah diproses.',
+                ]);
             }
 
-            $reservasi = Reservasi::query()->lockForUpdate()->findOrFail($pembatalan->reservasi_id);
+            $reservasi = Reservasi::query()
+                ->lockForUpdate()
+                ->findOrFail($pembatalan->reservasi_id);
 
             if ($tujuan === StatusPembatalan::Disetujui) {
                 if (! $reservasi->status->bolehBerubahKe(StatusReservasi::Batal)) {
@@ -210,14 +281,37 @@ class ReservasiService
     }
 
     /**
-     * Mengunci baris kamar yang diminta lalu memastikan semuanya tersedia di rentang tanggal tersebut.
-     * Kunci mencegah dua permintaan bersamaan memesan kamar yang sama.
+     * Menyetujui pengajuan pembatalan dari tamu.
+     * Menggunakan prosesPembatalan agar tidak ada proses ganda.
+     */
+    public function setujuiPembatalan(
+        Pembatalan $pembatalan,
+        ?int $petugasId,
+        ?string $catatan = null
+    ): Reservasi {
+        $hasil = $this->prosesPembatalan(
+            $pembatalan,
+            StatusPembatalan::Disetujui,
+            $petugasId,
+            $catatan
+        );
+
+        return Reservasi::query()->findOrFail($hasil->reservasi_id);
+    }
+
+    /**
+     * Mengunci baris kamar yang diminta lalu memastikan
+     * semuanya tersedia pada rentang tanggal tersebut.
      *
-     * @param  list<int>  $kamarIds
+     * @param list<int> $kamarIds
      * @return Collection<int, Kamar>
      */
-    private function kunciKamarTersedia(array $kamarIds, string $masuk, string $keluar, ?int $abaikanReservasiId = null): Collection
-    {
+    private function kunciKamarTersedia(
+        array $kamarIds,
+        string $masuk,
+        string $keluar,
+        ?int $abaikanReservasiId = null
+    ): Collection {
         $kamarIds = array_values(array_unique($kamarIds));
 
         $kamar = Kamar::query()
@@ -226,12 +320,16 @@ class ReservasiService
             ->lockForUpdate()
             ->get();
 
-        $tidakTersedia = $kamar->filter(fn (Kamar $item) => $item->status !== StatusKamar::Tersedia)
+        $tidakTersedia = $kamar
+            ->filter(fn (Kamar $item) => $item->status !== StatusKamar::Tersedia)
             ->merge(
                 $kamar->whereNotIn(
                     'id',
-                    Kamar::query()->tersedia($masuk, $keluar, $abaikanReservasiId)->whereKey($kamarIds)->pluck('id'),
-                ),
+                    Kamar::query()
+                        ->tersedia($masuk, $keluar, $abaikanReservasiId)
+                        ->whereKey($kamarIds)
+                        ->pluck('id')
+                )
             )
             ->unique('id');
 

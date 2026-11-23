@@ -9,6 +9,7 @@ enum StatusPembatalan: string
     use SebagaiOpsi;
 
     case Diajukan = 'diajukan';
+    case Menunggu = 'menunggu';
     case Disetujui = 'disetujui';
     case Ditolak = 'ditolak';
 
@@ -16,6 +17,7 @@ enum StatusPembatalan: string
     {
         return match ($this) {
             self::Diajukan => 'Diajukan',
+            self::Menunggu => 'Menunggu',
             self::Disetujui => 'Disetujui',
             self::Ditolak => 'Ditolak',
         };

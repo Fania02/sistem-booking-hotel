@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\PastikanPeran;
+use App\Http\Middleware\PeranDiizinkan;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,13 +16,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['peran' => PastikanPeran::class]);
+        $middleware->alias([
+            'peran' => PastikanPeran::class,
+        ]);
 
-        // Cek peran sebelum model binding, supaya akun tanpa izin selalu mendapat 403 (bukan 404).
-        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: PastikanPeran::class);
+        // Cek peran sebelum model binding.
+        $middleware->prependToPriorityList(
+            before: SubstituteBindings::class,
+            prepend: PastikanPeran::class,
+        );
 
-        // Tamu yang sudah login tidak perlu membuka halaman masuk/daftar lagi.
-        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->adalahStaf() ? '/admin/reservasi' : '/');
+        // Arahkan pengguna yang sudah login sesuai perannya.
+        $middleware->redirectUsersTo(
+            fn (Request $request) => $request->user()?->adalahStaf()
+                ? route('admin.dashboard')
+                : route('tamu.dashboard')
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

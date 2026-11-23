@@ -11,6 +11,9 @@ enum MetodePembayaran: string
     case Tunai = 'tunai';
     case Transfer = 'transfer';
     case Qris = 'qris';
+    case TransferBank = 'transfer_bank';
+    case KartuKredit = 'kartu_kredit';
+    case DompetDigital = 'dompet_digital';
 
     public function label(): string
     {
@@ -18,6 +21,9 @@ enum MetodePembayaran: string
             self::Tunai => 'Tunai',
             self::Transfer => 'Transfer',
             self::Qris => 'QRIS',
+            self::TransferBank => 'Transfer Bank',
+            self::KartuKredit => 'Kartu Kredit',
+            self::DompetDigital => 'Dompet Digital',
         };
     }
 }

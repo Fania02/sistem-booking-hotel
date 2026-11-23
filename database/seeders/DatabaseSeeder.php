@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Peran;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -10,15 +11,20 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        User::query()->firstOrCreate(
-            ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => 'password'],
-        );
+        // Akun contoh (password semuanya: password)
+        foreach ([
+            ['Admin Hotel', 'admin@royalhotel.test', Peran::Admin],
+            ['Resepsionis', 'resepsionis@royalhotel.test', Peran::Resepsionis],
+            ['Tamu Contoh', 'tamu@royalhotel.test', Peran::Tamu],
+        ] as [$nama, $email, $peran]) {
+            $user = User::query()->firstOrNew(['email' => $email]);
+            $user->name = $nama;
+            $user->password = 'password';
+            $user->role = $peran;
+            $user->save();
+        }
 
         $this->call([
             TipeKamarSeeder::class,

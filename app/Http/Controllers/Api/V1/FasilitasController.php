@@ -12,20 +12,38 @@ use Illuminate\Http\Response;
 
 class FasilitasController extends Controller
 {
+    /**
+     * Menampilkan semua fasilitas.
+     */
     public function index(): AnonymousResourceCollection
     {
-        return FasilitasResource::collection(Fasilitas::query()->withCount('tipeKamar')->orderBy('nama')->get());
+        return FasilitasResource::collection(
+            Fasilitas::query()
+                ->withCount('tipeKamar')
+                ->orderBy('nama')
+                ->get()
+        );
     }
 
+    /**
+     * Menambahkan fasilitas.
+     */
     public function store(FasilitasRequest $request): JsonResponse
     {
         $fasilitas = Fasilitas::query()->create($request->validated());
 
-        return (new FasilitasResource($fasilitas))->response()->setStatusCode(Response::HTTP_CREATED);
+        return (new FasilitasResource($fasilitas))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function update(FasilitasRequest $request, Fasilitas $fasilitas): FasilitasResource
-    {
+    /**
+     * Memperbarui fasilitas.
+     */
+    public function update(
+        FasilitasRequest $request,
+        Fasilitas $fasilitas
+    ): FasilitasResource {
         $fasilitas->update($request->validated());
 
         return new FasilitasResource($fasilitas);

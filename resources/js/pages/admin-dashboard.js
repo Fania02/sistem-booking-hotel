@@ -10,15 +10,18 @@ const WARNA_STATUS = {
     batal: 'bg-red-100 text-red-700',
 };
 
-/** Hitung naik dari 0 supaya angka terasa "hidup". */
+/** Hitung naik dari 0 supaya angka terasa hidup. */
 function hitungNaik(el, akhir, format = (n) => String(n)) {
     const mulai = performance.now();
     const durasi = 900;
+
     const langkah = (sekarang) => {
         const t = Math.min(1, (sekarang - mulai) / durasi);
         el.textContent = format(Math.round(akhir * (1 - (1 - t) ** 3)));
+
         if (t < 1) requestAnimationFrame(langkah);
     };
+
     requestAnimationFrame(langkah);
 }
 
@@ -36,24 +39,51 @@ function grafik(data) {
         )
         .join('');
 
-    requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-tinggi]').forEach((el) => (el.style.height = `${el.dataset.tinggi}%`))));
+    requestAnimationFrame(() =>
+        requestAnimationFrame(() =>
+            $$('[data-tinggi]').forEach((el) => {
+                el.style.height = `${el.dataset.tinggi}%`;
+            }),
+        ),
+    );
 }
 
 export async function initAdminDashboard() {
-    $('#tanggal-hari-ini').textContent = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+    $('#tanggal-hari-ini').textContent = new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    }).format(new Date());
 
     try {
-        const { data } = await api.get('/dashboard');
-        const totalKamar = data.kamar.total;
-        const kamarTerisi = data.kamar.terisi;
-        const okupansi = totalKamar > 0 ? Math.round((kamarTerisi / totalKamar) * 100) : 0;
+        let data;
+
+        // Coba endpoint backend utama terlebih dahulu.
+        try {
+            ({ data } = await api.get('/dashboard'));
+        } catch {
+            // Gunakan endpoint alternatif dari branch frontend.
+            ({ data } = await api.get('/admin/ringkasan'));
+        }
+
+        // Samakan format respons dari kedua endpoint.
+        const totalKamar = data.kamar?.total ?? data.total_kamar ?? 0;
+        const kamarTerisi = data.kamar?.terisi ?? data.kamar_terisi ?? 0;
+        const okupansi = data.okupansi
+            ?? (totalKamar > 0 ? Math.round((kamarTerisi / totalKamar) * 100) : 0);
+
         const angka = {
-            checkin_hari_ini: data.reservasi.checkin_hari_ini,
-            checkout_hari_ini: data.reservasi.checkout_hari_ini,
-            pembayaran_menunggu: data.perlu_tindakan.pembayaran_menunggu_verifikasi,
-            pembatalan_diajukan: data.perlu_tindakan.pembatalan_diajukan,
+            checkin_hari_ini: data.reservasi?.checkin_hari_ini ?? data.checkin_hari_ini ?? 0,
+            checkout_hari_ini: data.reservasi?.checkout_hari_ini ?? data.checkout_hari_ini ?? 0,
+            pembayaran_menunggu: data.perlu_tindakan?.pembayaran_menunggu_verifikasi
+                ?? data.pembayaran_menunggu ?? 0,
+            pembatalan_diajukan: data.perlu_tindakan?.pembatalan_diajukan
+                ?? data.pembatalan_diajukan ?? 0,
         };
-        const isi = (kunci, nilai, format) => hitungNaik($(`[data-stat="${kunci}"]`), nilai, format);
+
+        const isi = (kunci, nilai, format) =>
+            hitungNaik($(`[data-stat="${kunci}"]`), nilai, format);
 
         isi('checkin_hari_ini', angka.checkin_hari_ini);
         isi('checkout_hari_ini', angka.checkout_hari_ini);
@@ -61,9 +91,11 @@ export async function initAdminDashboard() {
         isi('pembayaran_menunggu', angka.pembayaran_menunggu);
         isi('pembatalan_diajukan', angka.pembatalan_diajukan);
 
-        // Pendapatan hanya dikirim untuk admin; resepsionis melihat tanda strip.
-        if (data.pendapatan) {
-            isi('pendapatan_bulan_ini', data.pendapatan.bulan_ini, formatRupiah);
+        // Pendapatan hanya ditampilkan jika dikirim oleh backend.
+        const pendapatan = data.pendapatan?.bulan_ini ?? data.pendapatan_bulan_ini;
+
+        if (pendapatan !== undefined && pendapatan !== null) {
+            isi('pendapatan_bulan_ini', pendapatan, formatRupiah);
         } else {
             $('[data-stat="pendapatan_bulan_ini"]').textContent = '–';
         }
@@ -76,23 +108,40 @@ export async function initAdminDashboard() {
             }
         });
 
-        grafik(data.grafik_kedatangan);
+        grafik(data.grafik_kedatangan ?? []);
 
-        requestAnimationFrame(() => ($('#cincin').style.strokeDashoffset = String(276.46 * (1 - okupansi / 100))));
+        requestAnimationFrame(() => {
+            $('#cincin').style.strokeDashoffset = String(276.46 * (1 - okupansi / 100));
+        });
+
         hitungNaik($('#cincin-angka'), okupansi, (n) => `${n}%`);
         $('#cincin-info').textContent = `${kamarTerisi} dari ${totalKamar} kamar terisi`;
 
-        $('#terbaru').innerHTML = data.reservasi_terbaru.length
-            ? data.reservasi_terbaru
-                  .map(
-                      (r) => `
+        const terbaru = data.reservasi_terbaru ?? [];
+
+        $('#terbaru').innerHTML = terbaru.length
+            ? terbaru
+                  .map((r) => {
+                      const namaTamu = typeof r.tamu === 'object'
+                          ? r.tamu?.nama ?? '-'
+                          : r.tamu ?? '-';
+
+                      const status = typeof r.status === 'object'
+                          ? r.status
+                          : { value: r.status, label: r.status };
+
+                      return `
                 <div class="flex flex-wrap items-center justify-between gap-2 py-3 text-xs transition hover:bg-krem/60">
-                    <div><p class="font-semibold">${escapeHtml(r.kode_booking)} · ${escapeHtml(r.tamu?.nama ?? '-')}</p>
-                    <p class="text-[11px] text-redam">${formatTanggal(r.tgl_checkin)} – ${formatTanggal(r.tgl_checkout)}</p></div>
-                    <div class="flex items-center gap-3"><span class="font-medium">${formatRupiah(r.total_harga)}</span>
-                    <span class="badge ${WARNA_STATUS[r.status.value] ?? ''}">${escapeHtml(r.status.label)}</span></div>
-                </div>`,
-                  )
+                    <div>
+                        <p class="font-semibold">${escapeHtml(r.kode_booking)} · ${escapeHtml(namaTamu)}</p>
+                        <p class="text-[11px] text-redam">${formatTanggal(r.tgl_checkin)} – ${formatTanggal(r.tgl_checkout)}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-medium">${formatRupiah(r.total_harga)}</span>
+                        <span class="badge ${WARNA_STATUS[status.value] ?? ''}">${escapeHtml(status.label ?? '-')}</span>
+                    </div>
+                </div>`;
+                  })
                   .join('')
             : '<p class="py-6 text-center text-xs text-redam">Belum ada reservasi.</p>';
     } catch (error) {

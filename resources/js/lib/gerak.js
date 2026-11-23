@@ -3,7 +3,7 @@
  *  - [data-reveal]   : muncul halus saat di-scroll (delay urut otomatis)
  *  - [data-tilt]     : kartu miring mengikuti kursor + kilau emas
  *  - [data-parallax] : lapisan bergeser tipis mengikuti kursor
- *  - gambar gagal dimuat -> tampil latar kopi (tidak ada ikon rusak)
+ *  - gambar gagal dimuat -> pakai ilustrasi cadangan (data-cadangan)
  */
 const kursorHalus = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 const kurangiGerak = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -16,7 +16,6 @@ export function segarkanReveal(root = document) {
 
     if (kurangiGerak() || !('IntersectionObserver' in window)) {
         daftar.forEach((el) => el.classList.add('is-tampil'));
-
         return;
     }
 
@@ -61,6 +60,7 @@ function initKartuMiring() {
         const r = kartu.getBoundingClientRect();
         const x = (event.clientX - r.left) / r.width;
         const y = (event.clientY - r.top) / r.height;
+
         kartu.style.setProperty('--mx', `${x * 100}%`);
         kartu.style.setProperty('--my', `${y * 100}%`);
         kartu.style.setProperty('--ry', `${(x - 0.5) * 7}deg`);
@@ -85,22 +85,43 @@ function initParallax() {
             const r = area.getBoundingClientRect();
             const x = (event.clientX - r.left) / r.width - 0.5;
             const y = (event.clientY - r.top) / r.height - 0.5;
+
             lapisan.forEach((el) => {
                 const k = Number(el.dataset.parallaxLapis) || 10;
                 el.style.transform = `translate3d(${x * -k}px, ${y * -k}px, 0)`;
             });
         });
 
-        area.addEventListener('pointerleave', () => lapisan.forEach((el) => (el.style.transform = '')));
+        area.addEventListener('pointerleave', () => {
+            lapisan.forEach((el) => (el.style.transform = ''));
+        });
     });
+}
+
+/** Ganti ke ilustrasi cadangan; kalau cadangan pun gagal, sembunyikan gambar. */
+function gantiCadangan(gambar) {
+    const cadangan = gambar.dataset.cadangan;
+
+    if (cadangan && !gambar.src.endsWith(cadangan)) {
+        gambar.src = cadangan;
+    } else {
+        gambar.classList.add('foto-gagal');
+    }
 }
 
 function initFotoGagal() {
     document.addEventListener('error', (event) => {
         if (event.target.tagName === 'IMG') {
-            event.target.classList.add('foto-gagal');
+            gantiCadangan(event.target);
         }
     }, true);
+
+    // Periksa gambar yang sudah gagal sebelum skrip berjalan.
+    document.querySelectorAll('img[data-cadangan]').forEach((gambar) => {
+        if (gambar.complete && gambar.naturalWidth === 0 && gambar.getAttribute('src')) {
+            gantiCadangan(gambar);
+        }
+    });
 }
 
 /** Efek header: bayangan setelah di-scroll. */
@@ -117,6 +138,9 @@ function initHeader() {
 }
 
 export function initGerak() {
+    // Aktifkan animasi reveal setelah JavaScript berjalan.
+    document.documentElement.classList.add('js-gerak');
+
     initFotoGagal();
     initKartuMiring();
     initParallax();

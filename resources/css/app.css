@@ -113,12 +113,10 @@
     }
 }
 
-
 /* =====================================================================
-   GERAK & INTERAKSI (dipakai lib/gerak.js)
+   GERAK & INTERAKSI
    ===================================================================== */
 
-/* Tombol: naik tipis + bayangan saat kursor lewat */
 .btn-gelap,
 .btn-emas,
 .btn-garis,
@@ -144,18 +142,18 @@
 }
 
 /* Muncul saat di-scroll */
-[data-reveal] {
+.js-gerak [data-reveal] {
     opacity: 0;
     transform: translateY(26px);
     transition: opacity 0.8s ease var(--d, 0ms), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms);
 }
 
-[data-reveal].is-tampil {
+.js-gerak [data-reveal].is-tampil {
     opacity: 1;
     transform: none;
 }
 
-/* Kartu: miring mengikuti kursor + kilau emas */
+/* Kartu interaktif */
 [data-tilt] {
     position: relative;
     transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
@@ -182,7 +180,7 @@
     opacity: 1;
 }
 
-/* Foto membesar pelan saat kartu disentuh kursor */
+/* Zoom foto */
 .zoom-foto {
     transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -218,7 +216,7 @@
 
 @keyframes kenburns {
     from { transform: scale(1.04) translate(0, 0); }
-    to   { transform: scale(1.14) translate(-1.5%, -1%); }
+    to { transform: scale(1.14) translate(-1.5%, -1%); }
 }
 
 .hero-teks {
@@ -273,12 +271,12 @@
     transform: none;
 }
 
-/* Lapisan parallax mengikuti kursor */
+/* Parallax */
 [data-parallax-lapis] {
     transition: transform 0.35s ease-out;
 }
 
-/* Tautan navbar: garis emas meluncur */
+/* Navbar */
 .nav-link {
     position: relative;
 }
@@ -321,6 +319,57 @@ header.sticky.is-scroll {
     color: #fff;
 }
 
+/* Galeri fasilitas */
+.galeri-slide {
+    opacity: 0;
+    z-index: 0;
+    transition: opacity 1s ease;
+}
+
+.galeri-slide.is-aktif {
+    opacity: 1;
+    z-index: 1;
+}
+
+.galeri-slide img {
+    transform: scale(1.04);
+}
+
+.galeri-slide.is-aktif img {
+    animation: kenburns 7s ease-out forwards;
+}
+
+.galeri-teks {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.6s ease 0.35s, transform 0.6s ease 0.35s;
+}
+
+.galeri-slide.is-aktif .galeri-teks {
+    opacity: 1;
+    transform: none;
+}
+
+#galeri-fasilitas:hover .slide-panah {
+    opacity: 1;
+    transform: none;
+}
+
+.fas-item {
+    transition: transform 0.25s ease, border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.fas-item:hover {
+    transform: translateX(4px);
+    border-color: var(--color-emas);
+}
+
+.fas-item[aria-pressed='true'] {
+    border-color: var(--color-emas);
+    background: #fff;
+    box-shadow: 0 12px 24px -16px rgba(43, 31, 26, 0.5);
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -329,7 +378,7 @@ header.sticky.is-scroll {
         transition-duration: 0.01ms !important;
     }
 
-    [data-reveal] {
+    .js-gerak [data-reveal] {
         opacity: 1;
         transform: none;
     }

@@ -21,45 +21,98 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Mendaftarkan akun tamu. Akun dihubungkan ke data tamu berdasarkan NIK:
-     * NIK baru membuat data tamu, NIK lama hanya boleh dipakai bila nama sama
-     * dan belum terhubung ke akun lain.
+     * Mendaftarkan akun tamu menggunakan data NIK.
      */
     public function register(RegistrasiRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $user = $this->buatAkun($request->validated());
 
-        $user = DB::transaction(function () use ($data): User {
-            $tamu = Tamu::withTrashed()->where('nik', $data['nik'])->first();
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return (new UserResource($user))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Alternatif endpoint registrasi untuk frontend.
+     */
+    public function registrasi(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'nik' => ['required', 'digits:16'],
+            'no_hp' => ['required', 'string', 'max:15'],
+            'alamat' => ['nullable', 'string', 'max:1000'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $this->buatAkun($data);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'data' => $this->ringkas($user),
+        ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * Membuat akun dan menghubungkannya dengan data tamu.
+     */
+    private function buatAkun(array $data): User
+    {
+        return DB::transaction(function () use ($data): User {
+            $tamu = Tamu::withTrashed()
+                ->where('nik', $data['nik'])
+                ->first();
 
             if ($tamu !== null && $tamu->user_id !== null) {
-                throw ValidationException::withMessages(['nik' => 'NIK ini sudah terhubung ke akun lain.']);
+                throw ValidationException::withMessages([
+                    'nik' => 'NIK ini sudah terhubung ke akun lain.',
+                ]);
             }
 
-            if ($tamu !== null && Str::lower(trim($tamu->nama)) !== Str::lower(trim($data['name']))) {
-                throw ValidationException::withMessages(['nik' => 'NIK sudah terdaftar atas nama lain. Periksa kembali nama dan NIK Anda.']);
+            if (
+                $tamu !== null &&
+                Str::lower(trim($tamu->nama)) !== Str::lower(trim($data['name']))
+            ) {
+                throw ValidationException::withMessages([
+                    'nik' => 'NIK sudah terdaftar atas nama lain. Periksa kembali nama dan NIK Anda.',
+                ]);
             }
 
-            $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+            $user = new User([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => $data['password'],
+            ]);
+
             $user->forceFill(['role' => Peran::Tamu])->save();
 
-            $tamu ??= new Tamu(['nama' => $data['name'], 'nik' => $data['nik']]);
-            $tamu->fill(['no_hp' => $data['no_hp'], 'alamat' => $data['alamat'] ?? $tamu->alamat, 'user_id' => $user->id]);
+            $tamu ??= new Tamu([
+                'nama' => $data['name'],
+                'nik' => $data['nik'],
+            ]);
+
+            $tamu->fill([
+                'no_hp' => $data['no_hp'],
+                'alamat' => $data['alamat'] ?? $tamu->alamat,
+                'user_id' => $user->id,
+            ]);
+
             $tamu->deleted_at = null;
             $tamu->save();
 
             return $user;
         });
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return (new UserResource($user))->response()->setStatusCode(Response::HTTP_CREATED);
     }
 
     public function login(LoginRequest $request): UserResource
     {
-        $kunci = Str::lower($request->string('email')).'|'.$request->ip();
+        $kunci = Str::lower($request->string('email')) . '|' . $request->ip();
 
         if (RateLimiter::tooManyAttempts($kunci, 5)) {
             $detik = RateLimiter::availableIn($kunci);
@@ -72,7 +125,9 @@ class AuthController extends Controller
         if (! Auth::attempt($request->only('email', 'password'))) {
             RateLimiter::hit($kunci, 60);
 
-            throw ValidationException::withMessages(['email' => 'Email atau password salah.']);
+            throw ValidationException::withMessages([
+                'email' => 'Email atau password salah.',
+            ]);
         }
 
         RateLimiter::clear($kunci);
@@ -84,6 +139,7 @@ class AuthController extends Controller
     public function logout(Request $request): Response
     {
         Auth::guard('web')->logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -93,5 +149,19 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    /**
+     * Ringkasan akun untuk respons frontend.
+     */
+    private function ringkas(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'peran' => $user->role->value,
+            'staf' => $user->adalahStaf(),
+        ];
     }
 }

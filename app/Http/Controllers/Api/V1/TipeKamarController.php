@@ -13,20 +13,33 @@ use Illuminate\Http\Response;
 class TipeKamarController extends Controller
 {
     /**
-     * Daftar tipe kamar beserta fasilitasnya (publik, untuk dropdown dan halaman depan).
+     * Daftar tipe kamar beserta fasilitasnya.
      */
     public function index(): AnonymousResourceCollection
     {
         return TipeKamarResource::collection(
-            TipeKamar::query()->with(['fasilitas' => fn ($q) => $q->orderBy('nama')])->orderBy('nama_tipe')->get(),
+            TipeKamar::query()
+                ->with(['fasilitas' => fn ($q) => $q->orderBy('nama')])
+                ->orderBy('nama_tipe')
+                ->get()
         );
     }
 
+    /**
+     * Menampilkan detail tipe kamar.
+     */
     public function show(TipeKamar $tipeKamar): TipeKamarResource
     {
-        return new TipeKamarResource($tipeKamar->load(['fasilitas' => fn ($q) => $q->orderBy('nama')]));
+        return new TipeKamarResource(
+            $tipeKamar->load([
+                'fasilitas' => fn ($q) => $q->orderBy('nama'),
+            ])
+        );
     }
 
+    /**
+     * Menambahkan tipe kamar.
+     */
     public function store(TipeKamarRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -34,11 +47,18 @@ class TipeKamarController extends Controller
         $tipe = TipeKamar::query()->create($data);
         $tipe->fasilitas()->sync($data['fasilitas_ids'] ?? []);
 
-        return (new TipeKamarResource($tipe->load('fasilitas')))->response()->setStatusCode(Response::HTTP_CREATED);
+        return (new TipeKamarResource($tipe->load('fasilitas')))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function update(TipeKamarRequest $request, TipeKamar $tipeKamar): TipeKamarResource
-    {
+    /**
+     * Memperbarui tipe kamar.
+     */
+    public function update(
+        TipeKamarRequest $request,
+        TipeKamar $tipeKamar
+    ): TipeKamarResource {
         $data = $request->validated();
 
         $tipeKamar->update($data);
@@ -47,9 +67,14 @@ class TipeKamarController extends Controller
             $tipeKamar->fasilitas()->sync($data['fasilitas_ids'] ?? []);
         }
 
-        return new TipeKamarResource($tipeKamar->load('fasilitas'));
+        return new TipeKamarResource(
+            $tipeKamar->load('fasilitas')
+        );
     }
 
+    /**
+     * Menghapus tipe kamar jika tidak sedang digunakan.
+     */
     public function destroy(TipeKamar $tipeKamar): JsonResponse
     {
         if ($tipeKamar->kamar()->exists()) {

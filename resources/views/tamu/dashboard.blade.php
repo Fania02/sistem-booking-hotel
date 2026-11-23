@@ -8,7 +8,7 @@
 
     {{-- Sapaan --}}
     <section class="relative overflow-hidden rounded-3xl bg-tinta px-7 py-8 text-white md:px-10 md:py-10" data-reveal data-parallax>
-        <img src="{{ config('foto.hero.2.url') }}" alt="" class="absolute inset-0 h-full w-full scale-110 object-cover opacity-30" data-parallax-lapis="12">
+        <img src="{{ config('foto.hero.2.url') }}" data-cadangan="{{ config('foto.hero.2.cadangan') }}" alt="" class="absolute inset-0 h-full w-full scale-110 object-cover opacity-30" data-parallax-lapis="12">
         <div class="absolute inset-0 bg-gradient-to-r from-tinta via-tinta/80 to-transparent"></div>
         <div class="relative flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
